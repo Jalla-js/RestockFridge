@@ -1,0 +1,585 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Bar Fridge Restock</title>
+  <style>
+    :root { --pad: 14px; --radius: 14px; }
+    body { font-family: -apple-system, system-ui, Segoe UI, Roboto, Arial, sans-serif; margin: 0; background:#0b0c10; color:#e9eef5; }
+    header { position: sticky; top: 0; z-index: 5; background: rgba(11,12,16,.92); backdrop-filter: blur(10px); border-bottom: 1px solid rgba(255,255,255,.08); }
+    .wrap { max-width: 980px; margin: 0 auto; padding: var(--pad); }
+    h1 { font-size: 18px; margin: 0 0 6px; }
+    .muted { color: rgba(233,238,245,.7); font-size: 13px; margin: 0; }
+    .row { display:flex; gap:10px; flex-wrap: wrap; align-items:center; }
+    button, select, input[type="number"], input[type="text"] {
+      background: rgba(255,255,255,.06); color:#e9eef5; border:1px solid rgba(255,255,255,.12);
+      border-radius: 12px; padding: 10px 12px; font-size: 14px;
+    }
+    button { cursor:pointer; }
+    button.primary { background: rgba(0, 179, 255, .18); border-color: rgba(0,179,255,.35); }
+    button.danger { background: rgba(255, 60, 60, .16); border-color: rgba(255,60,60,.35); }
+    button:active { transform: scale(.99); }
+    .card { background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.08); border-radius: var(--radius); padding: var(--pad); margin-top: 12px; }
+    .grid { display:grid; gap:10px; grid-template-columns: 1fr; }
+    @media (min-width: 720px) { .grid { grid-template-columns: 1fr 1fr; } }
+    table { width:100%; border-collapse: collapse; }
+    th, td { text-align:left; padding: 10px 8px; border-bottom: 1px solid rgba(255,255,255,.08); vertical-align: middle; }
+    th { font-size: 12px; color: rgba(233,238,245,.7); font-weight: 600; }
+    td small { color: rgba(233,238,245,.7); }
+    .pill { display:inline-flex; gap:8px; align-items:center; padding:6px 10px; border-radius: 999px; border:1px solid rgba(255,255,255,.12); background: rgba(255,255,255,.06); font-size: 13px; }
+    .two { display:grid; grid-template-columns: 1fr 1fr; gap:10px; }
+    .three { display:grid; grid-template-columns: 1fr 1fr 1fr; gap:10px; }
+    .right { text-align:right; }
+    .ok { color:#87ffb0; }
+    .warn { color:#ffd67a; }
+    .bad { color:#ff7f7f; }
+    .tiny { font-size: 12px; color: rgba(233,238,245,.65); }
+    .check { display:flex; gap:10px; align-items:center; padding:10px 8px; border-bottom:1px solid rgba(255,255,255,.08); }
+    .check input[type="checkbox"] { width: 22px; height: 22px; }
+    .badge { font-size: 12px; padding: 4px 8px; border-radius: 999px; border:1px solid rgba(255,255,255,.12); background: rgba(255,255,255,.06); }
+    details summary { cursor:pointer; }
+    .footer { padding-bottom: 40px; }
+  </style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <div class="row" style="justify-content:space-between;">
+      <div>
+        <h1>Fridge Restock</h1>
+        <p class="muted">Fridge-by-fridge counts → end-of-night pick list (saved automatically).</p>
+      </div>
+      <div class="row">
+        <button class="primary" id="btnSummary">Pick List</button>
+        <button id="btnEdit">Edit Setup</button>
+        <button class="danger" id="btnReset">New Night</button>
+      </div>
+    </div>
+
+    <div class="row" style="margin-top:10px;">
+      <span class="pill">Mode:
+        <select id="mode">
+          <option value="missing">I enter MISSING amounts</option>
+          <option value="current">I enter CURRENT in-fridge amounts</option>
+        </select>
+      </span>
+
+      <span class="pill">Fridge:
+        <select id="fridgeSelect"></select>
+      </span>
+
+      <span class="pill" id="progressPill">—</span>
+
+      <div class="row" style="margin-left:auto;">
+        <button id="btnPrev">← Prev</button>
+        <button id="btnNext">Next →</button>
+      </div>
+    </div>
+  </div>
+</header>
+
+<main class="wrap footer">
+
+  <section id="fridgeView" class="card">
+    <div class="row" style="justify-content:space-between;">
+      <div>
+        <h2 id="fridgeTitle" style="margin:0 0 4px; font-size:16px;">—</h2>
+        <div class="tiny" id="fridgeHint">—</div>
+      </div>
+      <div class="row">
+        <button id="btnClearFridge">Clear This Fridge</button>
+      </div>
+    </div>
+
+    <div style="margin-top:12px; overflow:auto;">
+      <table>
+        <thead>
+          <tr>
+            <th style="min-width:220px;">Drink</th>
+            <th class="right">Target</th>
+            <th id="colInput" class="right">Missing</th>
+            <th class="right">You Need</th>
+          </tr>
+        </thead>
+        <tbody id="fridgeTable"></tbody>
+      </table>
+    </div>
+
+    <div class="row" style="margin-top:12px; justify-content:space-between;">
+      <span class="tiny">Tip: counts save automatically. Hit “Pick List” when you’re done.</span>
+      <span class="pill" id="fridgeNeedPill">Need: 0</span>
+    </div>
+  </section>
+
+  <section id="summaryView" class="card" style="display:none;">
+    <div class="row" style="justify-content:space-between;">
+      <div>
+        <h2 style="margin:0 0 4px; font-size:16px;">End-of-night Pick List</h2>
+        <div class="tiny">Totals across all fridges. Tick items as you grab them.</div>
+      </div>
+      <div class="row">
+        <button id="btnBack">Back to Fridges</button>
+        <button class="primary" id="btnPrint">Print / Share</button>
+      </div>
+    </div>
+
+    <div class="grid" style="margin-top:12px;">
+      <div class="card">
+        <div class="row" style="justify-content:space-between;">
+          <strong>Totals to Get</strong>
+          <span class="badge" id="totalToGet">0 items</span>
+        </div>
+        <div id="pickList" style="margin-top:10px;"></div>
+      </div>
+
+      <div class="card">
+        <strong>Breakdown</strong>
+        <div class="tiny" style="margin-top:6px;">What each fridge needs (so you can sanity-check).</div>
+        <div id="breakdown" style="margin-top:10px;"></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="editView" class="card" style="display:none;">
+    <div class="row" style="justify-content:space-between;">
+      <div>
+        <h2 style="margin:0 0 4px; font-size:16px;">Edit Setup (Fridges + Targets)</h2>
+        <div class="tiny">Change drinks / targets here. Then Save.</div>
+      </div>
+      <div class="row">
+        <button id="btnCancelEdit">Cancel</button>
+        <button class="primary" id="btnSaveEdit">Save Setup</button>
+      </div>
+    </div>
+
+    <p class="tiny" style="margin-top:10px;">
+      Format: each fridge has a name + an array of items with a label and target quantity.
+    </p>
+
+    <textarea id="setupJson" style="width:100%; min-height: 320px; margin-top:10px; border-radius: 12px; padding: 12px;"></textarea>
+    <div class="tiny" id="editError" style="margin-top:10px; color:#ff7f7f;"></div>
+  </section>
+
+</main>
+
+<script>
+/**
+ * === DEFAULT SETUP (EDIT THIS) ===
+ * Replace these with your actual Trilogy/Cube fridge layout + par levels.
+ */
+const DEFAULT_SETUP = {
+  venue: "Trilogy (Cube)",
+  fridges: [
+    {
+      id: "fridgeA",
+      name: "Fridge A (Top)",
+      hint: "e.g., beers + ciders",
+      items: [
+        { key: "carling", label: "Carling", target: 24 },
+        { key: "coors", label: "Coors", target: 24 },
+        { key: "kopparberg", label: "Kopparberg Mixed Fruit", target: 12 },
+        { key: "strongbow", label: "Strongbow Dark Fruit", target: 12 }
+      ]
+    },
+    {
+      id: "fridgeB",
+      name: "Fridge B (Middle)",
+      hint: "e.g., bottles + alcopops",
+      items: [
+        { key: "smirnoff_ice", label: "Smirnoff Ice", target: 12 },
+        { key: "wkdb", label: "WKD Blue", target: 12 },
+        { key: "reef", label: "Reef", target: 12 }
+      ]
+    },
+    {
+      id: "fridgeC",
+      name: "Fridge C (Bottom)",
+      hint: "e.g., softs / mixers",
+      items: [
+        { key: "coke", label: "Coca-Cola", target: 12 },
+        { key: "diet_coke", label: "Diet Coke", target: 12 },
+        { key: "lemonade", label: "Lemonade", target: 12 },
+        { key: "redbull", label: "Red Bull", target: 12 }
+      ]
+    }
+  ]
+};
+
+// LocalStorage keys
+const LS_SETUP = "restock_setup_v1";
+const LS_STATE = "restock_state_v1";
+const LS_CHECKS = "restock_checks_v1";
+
+// App state
+let setup = loadSetup();
+let state = loadState();  // per-fridge per-item numbers
+let checks = loadChecks(); // checklist ticked state
+
+// UI refs
+const fridgeSelect = document.getElementById("fridgeSelect");
+const fridgeTitle  = document.getElementById("fridgeTitle");
+const fridgeHint   = document.getElementById("fridgeHint");
+const fridgeTable  = document.getElementById("fridgeTable");
+const modeSelect   = document.getElementById("mode");
+const colInput     = document.getElementById("colInput");
+const progressPill = document.getElementById("progressPill");
+const fridgeNeedPill = document.getElementById("fridgeNeedPill");
+
+const fridgeView  = document.getElementById("fridgeView");
+const summaryView = document.getElementById("summaryView");
+const editView    = document.getElementById("editView");
+
+const pickListEl  = document.getElementById("pickList");
+const breakdownEl = document.getElementById("breakdown");
+const totalToGet  = document.getElementById("totalToGet");
+
+const setupJson   = document.getElementById("setupJson");
+const editError   = document.getElementById("editError");
+
+// Init
+renderFridgeSelect();
+ensureStateShape();
+renderCurrentFridge();
+
+// Buttons
+document.getElementById("btnPrev").onclick = () => stepFridge(-1);
+document.getElementById("btnNext").onclick = () => stepFridge(1);
+document.getElementById("btnSummary").onclick = () => showSummary();
+document.getElementById("btnBack").onclick = () => showFridges();
+document.getElementById("btnPrint").onclick = () => window.print();
+
+document.getElementById("btnReset").onclick = () => {
+  if (!confirm("Start a new night? This clears counts + checklist, but keeps your fridge setup.")) return;
+  state = {};
+  checks = {};
+  saveState(); saveChecks();
+  ensureStateShape();
+  renderCurrentFridge();
+  alert("Cleared. Ready for a new night.");
+};
+
+document.getElementById("btnClearFridge").onclick = () => {
+  const f = currentFridge();
+  if (!confirm(`Clear counts for ${f.name}?`)) return;
+  for (const it of f.items) delete state[f.id]?.[it.key];
+  saveState();
+  renderCurrentFridge();
+};
+
+modeSelect.onchange = () => {
+  saveState(); // keep values; just interpret them differently
+  renderCurrentFridge();
+};
+
+fridgeSelect.onchange = () => renderCurrentFridge();
+
+document.getElementById("btnEdit").onclick = () => {
+  editError.textContent = "";
+  setupJson.value = JSON.stringify(setup, null, 2);
+  fridgeView.style.display = "none";
+  summaryView.style.display = "none";
+  editView.style.display = "block";
+};
+
+document.getElementById("btnCancelEdit").onclick = () => {
+  editView.style.display = "none";
+  fridgeView.style.display = "block";
+};
+
+document.getElementById("btnSaveEdit").onclick = () => {
+  editError.textContent = "";
+  try {
+    const parsed = JSON.parse(setupJson.value);
+    validateSetup(parsed);
+    setup = parsed;
+    localStorage.setItem(LS_SETUP, JSON.stringify(setup));
+    ensureStateShape(true);
+    renderFridgeSelect();
+    renderCurrentFridge();
+    editView.style.display = "none";
+    fridgeView.style.display = "block";
+  } catch (e) {
+    editError.textContent = String(e.message || e);
+  }
+};
+
+function loadSetup() {
+  const raw = localStorage.getItem(LS_SETUP);
+  if (!raw) return structuredClone(DEFAULT_SETUP);
+  try { return JSON.parse(raw); } catch { return structuredClone(DEFAULT_SETUP); }
+}
+
+function loadState() {
+  const raw = localStorage.getItem(LS_STATE);
+  if (!raw) return {};
+  try { return JSON.parse(raw); } catch { return {}; }
+}
+
+function loadChecks() {
+  const raw = localStorage.getItem(LS_CHECKS);
+  if (!raw) return {};
+  try { return JSON.parse(raw); } catch { return {}; }
+}
+
+function saveState() { localStorage.setItem(LS_STATE, JSON.stringify(state)); }
+function saveChecks(){ localStorage.setItem(LS_CHECKS, JSON.stringify(checks)); }
+
+function validateSetup(s) {
+  if (!s || typeof s !== "object") throw new Error("Setup must be an object.");
+  if (!Array.isArray(s.fridges) || s.fridges.length === 0) throw new Error("Setup must include fridges[].");
+  for (const f of s.fridges) {
+    if (!f.id || !f.name) throw new Error("Each fridge needs id + name.");
+    if (!Array.isArray(f.items) || f.items.length === 0) throw new Error(`Fridge ${f.name} needs items[].`);
+    for (const it of f.items) {
+      if (!it.key || !it.label) throw new Error(`Item in ${f.name} needs key + label.`);
+      if (!Number.isFinite(it.target) || it.target < 0) throw new Error(`Item ${it.label} target must be a number ≥ 0.`);
+    }
+  }
+}
+
+function ensureStateShape(resetUnknown=false) {
+  // ensures state has fridge objects; optionally remove unknown fridges/items if setup changed
+  const validFridgeIds = new Set(setup.fridges.map(f => f.id));
+
+  if (resetUnknown) {
+    for (const fid of Object.keys(state)) if (!validFridgeIds.has(fid)) delete state[fid];
+  }
+
+  for (const f of setup.fridges) {
+    if (!state[f.id]) state[f.id] = {};
+    const validItemKeys = new Set(f.items.map(i => i.key));
+    if (resetUnknown) {
+      for (const k of Object.keys(state[f.id])) if (!validItemKeys.has(k)) delete state[f.id][k];
+    }
+  }
+  saveState();
+}
+
+function renderFridgeSelect() {
+  fridgeSelect.innerHTML = "";
+  setup.fridges.forEach((f, idx) => {
+    const opt = document.createElement("option");
+    opt.value = f.id;
+    opt.textContent = `${idx+1}. ${f.name}`;
+    fridgeSelect.appendChild(opt);
+  });
+
+  // keep selection if possible
+  const cur = fridgeSelect.value || setup.fridges[0]?.id;
+  fridgeSelect.value = setup.fridges.some(f=>f.id===cur) ? cur : setup.fridges[0]?.id;
+}
+
+function currentFridge() {
+  const id = fridgeSelect.value || setup.fridges[0].id;
+  return setup.fridges.find(f => f.id === id) || setup.fridges[0];
+}
+
+function stepFridge(dir) {
+  const ids = setup.fridges.map(f=>f.id);
+  const i = Math.max(0, ids.indexOf(fridgeSelect.value));
+  const next = Math.min(ids.length-1, Math.max(0, i + dir));
+  fridgeSelect.value = ids[next];
+  renderCurrentFridge();
+}
+
+function renderCurrentFridge() {
+  const f = currentFridge();
+  const idx = setup.fridges.findIndex(x=>x.id===f.id);
+  progressPill.textContent = `Fridge ${idx+1}/${setup.fridges.length}`;
+
+  fridgeTitle.textContent = f.name;
+  fridgeHint.textContent = f.hint ? f.hint : "—";
+
+  const mode = modeSelect.value; // missing | current
+  colInput.textContent = mode === "missing" ? "Missing" : "Current";
+  fridgeTable.innerHTML = "";
+
+  let fridgeNeedTotal = 0;
+
+  for (const it of f.items) {
+    const tr = document.createElement("tr");
+
+    const tdLabel = document.createElement("td");
+    tdLabel.innerHTML = `<div><strong>${escapeHtml(it.label)}</strong><br><small>${escapeHtml(it.key)}</small></div>`;
+
+    const tdTarget = document.createElement("td");
+    tdTarget.className = "right";
+    tdTarget.textContent = it.target;
+
+    const tdInput = document.createElement("td");
+    tdInput.className = "right";
+
+    const inp = document.createElement("input");
+    inp.type = "number";
+    inp.min = "0";
+    inp.step = "1";
+    inp.inputMode = "numeric";
+    inp.style.width = "100px";
+
+    const savedVal = state[f.id]?.[it.key];
+    inp.value = (savedVal ?? "");
+
+    const tdNeed = document.createElement("td");
+    tdNeed.className = "right";
+
+    const need = computeNeed(it.target, savedVal, mode);
+    fridgeNeedTotal += need;
+    tdNeed.innerHTML = need === 0 ? `<span class="ok">0</span>` : `<span class="warn">${need}</span>`;
+
+    inp.oninput = () => {
+      const v = inp.value === "" ? null : Math.max(0, Math.floor(Number(inp.value)));
+      if (!state[f.id]) state[f.id] = {};
+      if (v === null) delete state[f.id][it.key];
+      else state[f.id][it.key] = v;
+      saveState();
+      renderCurrentFridge(); // simple rerender
+    };
+
+    tdInput.appendChild(inp);
+    tr.appendChild(tdLabel);
+    tr.appendChild(tdTarget);
+    tr.appendChild(tdInput);
+    tr.appendChild(tdNeed);
+    fridgeTable.appendChild(tr);
+  }
+
+  fridgeNeedPill.textContent = `Need: ${fridgeNeedTotal}`;
+}
+
+function computeNeed(target, stored, mode) {
+  if (stored == null || stored === "") return 0;
+  const n = Number(stored);
+  if (!Number.isFinite(n)) return 0;
+
+  if (mode === "missing") {
+    return Math.max(0, Math.floor(n));
+  } else {
+    // stored is current in fridge
+    return Math.max(0, Math.floor(target - n));
+  }
+}
+
+function showSummary() {
+  const mode = modeSelect.value;
+  const totals = {}; // key -> {label, qty}
+  const perFridge = [];
+
+  for (const f of setup.fridges) {
+    let fridgeNeed = 0;
+    const lines = [];
+    for (const it of f.items) {
+      const stored = state[f.id]?.[it.key];
+      const need = computeNeed(it.target, stored, mode);
+      if (need > 0) {
+        fridgeNeed += need;
+        if (!totals[it.key]) totals[it.key] = { label: it.label, qty: 0 };
+        totals[it.key].qty += need;
+        lines.push({ label: it.label, key: it.key, qty: need });
+      }
+    }
+    perFridge.push({ fridge: f.name, need: fridgeNeed, lines });
+  }
+
+  // render pick list (sorted biggest first)
+  const list = Object.entries(totals)
+    .map(([key, v]) => ({ key, ...v }))
+    .sort((a,b)=> b.qty - a.qty || a.label.localeCompare(b.label));
+
+  pickListEl.innerHTML = "";
+  let totalUnits = 0;
+
+  for (const item of list) {
+    totalUnits += item.qty;
+    const row = document.createElement("div");
+    row.className = "check";
+
+    const cb = document.createElement("input");
+    cb.type = "checkbox";
+    const checkKey = `total:${item.key}`;
+    cb.checked = !!checks[checkKey];
+    cb.onchange = () => {
+      checks[checkKey] = cb.checked;
+      saveChecks();
+      renderSummaryBadges();
+    };
+
+    const text = document.createElement("div");
+    text.style.flex = "1";
+    text.innerHTML = `<strong>${escapeHtml(item.label)}</strong> <span class="badge">x${item.qty}</span><div class="tiny">${escapeHtml(item.key)}</div>`;
+
+    row.appendChild(cb);
+    row.appendChild(text);
+    pickListEl.appendChild(row);
+  }
+
+  totalToGet.textContent = `${list.length} drinks · ${totalUnits} units`;
+
+  // breakdown
+  breakdownEl.innerHTML = "";
+  for (const f of perFridge) {
+    const det = document.createElement("details");
+    det.open = false;
+
+    const sum = document.createElement("summary");
+    sum.innerHTML = `<strong>${escapeHtml(f.fridge)}</strong> <span class="badge">Need ${f.need}</span>`;
+    det.appendChild(sum);
+
+    const inner = document.createElement("div");
+    inner.style.marginTop = "8px";
+    inner.style.borderTop = "1px solid rgba(255,255,255,.08)";
+
+    if (f.lines.length === 0) {
+      inner.innerHTML = `<div class="tiny" style="padding:10px 0;">Nothing needed.</div>`;
+    } else {
+      for (const line of f.lines) {
+        const r = document.createElement("div");
+        r.className = "check";
+        const cb = document.createElement("input");
+        cb.type = "checkbox";
+        const checkKey = `fridge:${f.fridge}:${line.key}`;
+        cb.checked = !!checks[checkKey];
+        cb.onchange = () => {
+          checks[checkKey] = cb.checked;
+          saveChecks();
+        };
+        const t = document.createElement("div");
+        t.style.flex = "1";
+        t.innerHTML = `${escapeHtml(line.label)} <span class="badge">x${line.qty}</span>`;
+        r.appendChild(cb); r.appendChild(t);
+        inner.appendChild(r);
+      }
+    }
+
+    det.appendChild(inner);
+    breakdownEl.appendChild(det);
+  }
+
+  renderSummaryBadges();
+
+  fridgeView.style.display = "none";
+  editView.style.display = "none";
+  summaryView.style.display = "block";
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+function renderSummaryBadges() {
+  // optional: could add “done” indicators later
+}
+
+function showFridges() {
+  summaryView.style.display = "none";
+  editView.style.display = "none";
+  fridgeView.style.display = "block";
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+function escapeHtml(s) {
+  return String(s)
+    .replaceAll("&","&amp;").replaceAll("<","&lt;")
+    .replaceAll(">","&gt;").replaceAll('"',"&quot;")
+    .replaceAll("'","&#039;");
+}
+</script>
+</body>
+</html>
