@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="utf-8"?>
+<svg id="svg2" viewBox="0 0 500 670" xmlns="http://www.w3.org/2000/svg">
+  <desc>Source: openclipart.org/detail/209545</desc>
+  <defs>
+    <radialGradient id="outerGlow" cx="50%" cy="42%" r="65%">
+      <stop offset="0" stop-color="#23D5FF" stop-opacity="0.45"/>
+      <stop offset="1" stop-color="#23D5FF" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="innerGlow" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#2EE6FF" stop-opacity="0.35"/>
+      <stop offset="1" stop-color="#2EE6FF" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="fridgeBody" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#1B2232"/>
+      <stop offset="1" stop-color="#0B0F17"/>
+    </linearGradient>
+    <linearGradient id="tickGrad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#2ED47A"/>
+      <stop offset="1" stop-color="#1FBF6A"/>
+    </linearGradient>
+  </defs>
+  <rect width="410.113" height="410.113" fill="#070A10" x="39.934" y="141.746" style="stroke-width: 1;"/>
+  <circle cx="244.987" cy="333.987" r="168.21" fill="url(#outerGlow)" style="stroke-width: 1; fill-opacity: 0.43;"/>
+  <rect x="148.87" y="218.642" width="192.241" height="256.321" rx="36" fill="url(#fridgeBody)" stroke="#2C3550" stroke-width="2" style="stroke-width: 2;"/>
+  <rect x="158.482" y="228.254" width="173.017" height="237.097" rx="28" fill="url(#innerGlow)" style="stroke-width: 1;"/>
+  <rect x="169.696" y="325.977" width="150.588" height="3.204" rx="2" fill="#334062" style="stroke-width: 1;"/>
+  <rect x="169.696" y="388.042" width="150.588" height="3.204" rx="2" fill="#334062" style="stroke-width: 1;"/>
+  <g fill="#E8F7FF" transform="matrix(0.801002, 0, 0, 0.801002, 16.930496, 147.745364)" style="">
+    <rect x="206.96" y="236.46" width="8" height="56" rx="3" style="stroke-width: 1; fill: rgb(154, 250, 141);"/>
+    <rect x="202.96" y="251.592" width="16" height="49.364" rx="3" style="stroke-width: 1; fill: rgb(154, 250, 141);"/>
+    <rect x="233.008" y="235.968" width="8" height="56" rx="3" style="stroke-width: 1; fill: rgb(154, 250, 141);"/>
+    <rect x="229.008" y="251.1" width="16" height="49.364" rx="3" style="stroke-width: 1; fill: rgb(154, 250, 141);"/>
+    <rect x="258.128" y="237.042" width="8" height="56" rx="3" style="stroke-width: 1; fill: rgb(234, 141, 250);"/>
+    <rect x="254.128" y="252.174" width="16" height="49.364" rx="3" style="stroke-width: 1; fill: rgb(234, 141, 250);"/>
+    <rect x="284.176" y="236.55" width="8" height="56" rx="3" style="stroke-width: 1; fill: rgb(234, 141, 250);"/>
+    <rect x="280.176" y="251.682" width="16" height="49.364" rx="3" style="stroke-width: 1; fill: rgb(234, 141, 250);"/>
+    <rect x="307.915" y="237.042" width="8" height="56" rx="3" style="stroke-width: 1; fill: rgb(234, 141, 250);"/>
+    <rect x="303.915" y="252.174" width="16" height="49.364" rx="3" style="stroke-width: 1; fill: rgb(234, 141, 250);"/>
+    <rect x="333.963" y="236.55" width="8" height="56" rx="3" style="stroke-width: 1; fill: rgb(234, 141, 250);"/>
+    <rect x="329.963" y="251.682" width="16" height="49.364" rx="3" style="stroke-width: 1; fill: rgb(234, 141, 250);"/>
+    <rect x="357.094" y="236.926" width="8" height="56" rx="3" style="stroke-width: 1; fill: rgb(141, 250, 242);"/>
+    <rect x="353.094" y="252.058" width="16" height="49.364" rx="3" style="stroke-width: 1; fill: rgb(141, 250, 242);"/>
+    <rect x="219.258" y="156.686" width="8" height="56" rx="3" style="stroke-width: 1; fill: rgb(141, 184, 250);"/>
+    <rect x="215.258" y="171.818" width="16" height="49.364" rx="3" style="stroke-width: 1; fill: rgb(141, 184, 250);"/>
+    <rect x="245.306" y="156.194" width="8" height="56" rx="3" style="stroke-width: 1; fill: rgb(141, 184, 250);"/>
+    <rect x="241.306" y="171.326" width="16" height="49.364" rx="3" style="stroke-width: 1; fill: rgb(141, 184, 250);"/>
+    <rect x="271.674" y="157.268" width="8" height="56" rx="3" style="stroke-width: 1; fill: rgb(141, 184, 250);"/>
+    <rect x="267.674" y="172.4" width="16" height="49.364" rx="3" style="stroke-width: 1; fill: rgb(141, 184, 250);"/>
+    <rect x="296.501" y="157.268" width="8" height="56" rx="3" style="stroke-width: 1; fill: rgb(250, 203, 141);"/>
+    <rect x="292.501" y="172.4" width="16" height="49.364" rx="3" style="stroke-width: 1; fill: rgb(250, 203, 141);"/>
+    <rect x="321.301" y="156.776" width="8" height="56" rx="3" style="stroke-width: 1; fill: rgb(250, 203, 141);"/>
+    <rect x="317.301" y="171.908" width="16" height="49.364" rx="3" style="stroke-width: 1; fill: rgb(250, 203, 141);"/>
+    <rect x="345.68" y="157.152" width="8" height="56" rx="3" style="stroke-width: 1; fill: rgb(250, 203, 141);"/>
+    <rect x="341.68" y="172.284" width="16" height="49.364" rx="3" style="stroke-width: 1; fill: rgb(250, 203, 141);"/>
+  </g>
+  <g fill="#B8E8FF" opacity="0.9" transform="matrix(0.801002, 0, 0, 0.801002, 39.930497, 141.745363)" style=""/>
+  <g transform="matrix(0.801002, 0, 0, 0.801002, 296.251286, 406.076147)" style="">
+    <circle cx="48" cy="48" r="44" fill="url(#tickGrad)"/>
+    <path d="M28 50 L42 64 L70 32" fill="none" stroke="#06130C" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+  <g fill="#E8F7FF" transform="matrix(0.801002, 0, 0, 0.801002, 39.793687, 147.351702)" style=""/>
+</svg>
