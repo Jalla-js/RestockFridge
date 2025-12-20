@@ -1,0 +1,354 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport"
+  content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=yes">
+<meta name="color-scheme" content="dark">
+<title>Bar Close Checklist</title>
+
+<style>
+/* ------------------ THEME ------------------ */
+:root{
+  --bg:#070A10;
+  --panel:rgba(255,255,255,0.06);
+  --stroke:rgba(255,255,255,0.12);
+  --text:rgba(255,255,255,0.95);
+  --muted:rgba(255,255,255,0.65);
+  --accent:#7C5CFF;
+  --good:#29d17c;
+  --bad:#ff5a67;
+  --radius:16px;
+}
+*{box-sizing:border-box}
+body{
+  margin:0;
+  background:var(--bg);
+  font-family:-apple-system,system-ui,Segoe UI,Roboto,Arial;
+  color:var(--text);
+}
+.wrap{
+  max-width:760px;
+  margin:auto;
+  padding:16px;
+  padding-bottom:calc(20px + env(safe-area-inset-bottom));
+}
+h1,h2{margin:0}
+h1{font-size:18px}
+h2{font-size:15px}
+.muted{color:var(--muted);font-size:12px}
+
+/* ------------------ UI ------------------ */
+.card{
+  background:var(--panel);
+  border:1px solid var(--stroke);
+  border-radius:var(--radius);
+  padding:14px;
+  margin-bottom:16px;
+}
+button,select,input{
+  background:rgba(255,255,255,0.06);
+  color:var(--text);
+  border:1px solid var(--stroke);
+  border-radius:12px;
+  padding:10px 12px;
+  font-size:14px;
+}
+button.primary{
+  background:linear-gradient(135deg,#7C5CFF55,#23D5FF33);
+}
+button.danger{
+  border-color:#ff5a6766;
+  color:#ffb3b8;
+}
+.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.spread{justify-content:space-between}
+
+/* ------------------ FRIDGES ------------------ */
+.fridge-row{
+  display:grid;
+  grid-template-columns:1fr 80px 100px;
+  gap:10px;
+  align-items:center;
+  padding:10px;
+  border:1px solid var(--stroke);
+  border-radius:12px;
+  margin-bottom:8px;
+}
+.fridge-row strong{font-size:13px}
+input.qty{
+  font-size:16px;
+  text-align:center;
+}
+
+/* ------------------ LISTS ------------------ */
+.check{
+  display:grid;
+  grid-template-columns:22px 1fr auto;
+  gap:10px;
+  align-items:center;
+  padding:10px;
+  border:1px solid var(--stroke);
+  border-radius:12px;
+  margin-bottom:8px;
+}
+.count{
+  font-size:12px;
+  padding:4px 8px;
+  border:1px solid var(--stroke);
+  border-radius:999px;
+  color:var(--muted);
+}
+
+/* ------------------ DROPDOWNS ------------------ */
+details{
+  border:1px solid var(--stroke);
+  border-radius:12px;
+  padding:10px;
+  margin-bottom:8px;
+}
+summary{
+  cursor:pointer;
+  display:flex;
+  justify-content:space-between;
+  font-weight:700;
+}
+
+/* ------------------ MODAL ------------------ */
+.modal{
+  position:fixed;
+  inset:0;
+  background:#000000aa;
+  display:none;
+  align-items:center;
+  justify-content:center;
+  padding:16px;
+  z-index:999;
+}
+.modal.open{display:flex}
+.modalbox{
+  background:#0c0f18;
+  border-radius:18px;
+  border:1px solid var(--stroke);
+  max-width:520px;
+  width:100%;
+  padding:16px;
+}
+textarea{
+  width:100%;
+  min-height:220px;
+  background:#00000066;
+  color:var(--text);
+  border:1px solid var(--stroke);
+  border-radius:12px;
+  padding:10px;
+  font-size:13px;
+}
+</style>
+</head>
+
+<body>
+<div class="wrap">
+
+<!-- HEADER -->
+<div class="card spread row">
+  <div>
+    <h1>End of Night Close</h1>
+    <div class="muted" id="venueLabel"></div>
+  </div>
+  <div class="row">
+    <button class="primary" id="finishBtn">Finish Close</button>
+  </div>
+</div>
+
+<!-- FRIDGES -->
+<div class="card">
+  <h2 id="fridgeTitle">Fridge</h2>
+  <div class="muted" id="fridgeHint"></div>
+  <div class="row spread" style="margin:10px 0">
+    <button id="prevFridge">←</button>
+    <span id="fridgeCounter" class="muted"></span>
+    <button id="nextFridge">→</button>
+  </div>
+  <div id="fridgeTable"></div>
+</div>
+
+<!-- PICK LIST -->
+<div class="card">
+  <h2>Pick List (Total)</h2>
+  <div id="pickList"></div>
+</div>
+
+<!-- PER FRIDGE -->
+<div class="card">
+  <h2>Per-Fridge Breakdown</h2>
+  <div id="breakdown"></div>
+</div>
+
+<!-- CLEAN DOWN -->
+<div class="card">
+  <h2>Clean Down</h2>
+  <div id="cleanList"></div>
+</div>
+
+</div>
+
+<!-- SIGN OFF MODAL -->
+<div class="modal" id="signModal">
+  <div class="modalbox">
+    <h2>Bar Close Sign-off</h2>
+    <p class="muted">Copy & paste this into WhatsApp.</p>
+    <textarea id="signText"></textarea>
+    <div class="row spread" style="margin-top:10px">
+      <button onclick="copySign()">Copy</button>
+      <button class="danger" onclick="closeModal()">Close</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ------------------ SETUP ------------------ */
+const SETUP={
+ venue:"Trilogy (Cube)",
+ bar:"Barcadia",
+ fridges:[
+  {id:"A",name:"Fridge A (Top)",hint:"Alcopops",items:[
+   {k:"Orange",t:36},{k:"Blue",t:36},{k:"Apple & Mango",t:12},
+   {k:"Tropical",t:24},{k:"Ice",t:24},{k:"Cherry",t:12},{k:"Hooch",t:18}
+  ]},
+  {id:"B",name:"Fridge B (Middle)",hint:"Beers",items:[
+   {k:"Desperados",t:24},{k:"Budweiser",t:24},{k:"Sol",t:20},
+   {k:"Peroni",t:20},{k:"San Miguel",t:20}
+  ]},
+  {id:"C",name:"Fridge C (Bottom)",hint:"Alcopops",items:[
+   {k:"Orange",t:30},{k:"Blue",t:30},{k:"Apple & Mango",t:12},
+   {k:"Tropical",t:24},{k:"Ice",t:24},{k:"Cherry",t:12},{k:"Blackcurrant",t:18}
+  ]}
+ ],
+ clean:[
+  "Bottle condoms on","Glass bin taken out","Waste bin taken out",
+  "Place mats & measures in red bucket","Red bucket removed",
+  "All sides wiped down","Floors swept","Tables wiped",
+  "Rubbish sorted","Reset bar"
+ ]
+};
+
+const LS="bar_close_state";
+let state=JSON.parse(localStorage.getItem(LS)||"{}");
+if(!state.missing)state.missing={};
+if(!state.clean)state.clean={};
+if(!state.fridgeIndex)state.fridgeIndex=0;
+
+/* ------------------ HELPERS ------------------ */
+const byId=id=>document.getElementById(id);
+function save(){localStorage.setItem(LS,JSON.stringify(state));}
+
+/* ------------------ RENDER ------------------ */
+function render(){
+ byId("venueLabel").textContent=`${SETUP.venue} • ${SETUP.bar}`;
+ renderFridge();
+ renderPick();
+ renderBreakdown();
+ renderClean();
+}
+
+function renderFridge(){
+ const f=SETUP.fridges[state.fridgeIndex];
+ byId("fridgeTitle").textContent=f.name;
+ byId("fridgeHint").textContent=f.hint;
+ byId("fridgeCounter").textContent=`${state.fridgeIndex+1}/${SETUP.fridges.length}`;
+ const wrap=byId("fridgeTable");
+ wrap.innerHTML="";
+ state.missing[f.id]=state.missing[f.id]||{};
+ f.items.forEach(it=>{
+  const v=state.missing[f.id][it.k]||"";
+  wrap.innerHTML+=`
+   <div class="fridge-row">
+    <strong>${it.k}</strong>
+    <span class="muted">Target ${it.t}</span>
+    <input class="qty" type="tel" value="${v}"
+     oninput="state.missing['${f.id}']['${it.k}']=this.value;save();renderPick();renderBreakdown()">
+   </div>`;
+ });
+}
+
+function renderPick(){
+ const wrap=byId("pickList");
+ wrap.innerHTML="";
+ const totals={};
+ Object.values(state.missing).forEach(fr=>{
+  Object.entries(fr).forEach(([k,v])=>{
+   const n=parseInt(v)||0;
+   if(n>0)totals[k]=(totals[k]||0)+n;
+  });
+ });
+ Object.entries(totals).forEach(([k,v])=>{
+  wrap.innerHTML+=`
+   <div class="check">
+    <input type="checkbox">
+    <strong>${k}</strong>
+    <span class="count">${v}</span>
+   </div>`;
+ });
+}
+
+function renderBreakdown(){
+ const wrap=byId("breakdown");
+ wrap.innerHTML="";
+ SETUP.fridges.forEach(f=>{
+  const fr=state.missing[f.id]||{};
+  const needed=Object.entries(fr).filter(([,v])=>parseInt(v)>0);
+  const sum=needed.reduce((s,[,v])=>s+parseInt(v),0);
+  wrap.innerHTML+=`
+   <details ${sum>0?"open":""}>
+    <summary>${f.name}<span class="count">${sum}</span></summary>
+    ${needed.length?needed.map(([k,v])=>`
+      <div class="check"><div></div><span>${k}</span><span class="count">${v}</span></div>`).join("")
+     :`<div class="muted">Nothing needed</div>`}
+   </details>`;
+ });
+}
+
+function renderClean(){
+ const wrap=byId("cleanList");
+ wrap.innerHTML="";
+ SETUP.clean.forEach(t=>{
+  const checked=state.clean[t];
+  wrap.innerHTML+=`
+   <label class="check">
+    <input type="checkbox" ${checked?"checked":""}
+     onchange="state.clean['${t}']=this.checked;save()">
+    <span>${t}</span>
+   </label>`;
+ });
+}
+
+/* ------------------ NAV ------------------ */
+byId("prevFridge").onclick=()=>{state.fridgeIndex=Math.max(0,state.fridgeIndex-1);save();render()};
+byId("nextFridge").onclick=()=>{state.fridgeIndex=Math.min(SETUP.fridges.length-1,state.fridgeIndex+1);save();render()};
+
+/* ------------------ SIGN OFF ------------------ */
+byId("finishBtn").onclick=()=>{
+ const time=new Date().toLocaleTimeString();
+ const text=
+`✅ ${SETUP.bar} CLOSED
+
+🧊 Stock checked & fridges restocked
+🧽 Clean down completed
+📋 Pick list completed
+
+Closed at ${time}`;
+ byId("signText").value=text;
+ byId("signModal").classList.add("open");
+};
+function closeModal(){byId("signModal").classList.remove("open")}
+function copySign(){
+ byId("signText").select();
+ document.execCommand("copy");
+}
+
+/* ------------------ INIT ------------------ */
+render();
+</script>
+</body>
+</html>
