@@ -1,0 +1,266 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>End of Night – Closer</title>
+
+<style>
+:root {
+  --bg:#0b0d12;
+  --card:#141824cc;
+  --line:#ffffff14;
+  --text:#e9edf4;
+  --muted:#9aa3b2;
+  --accent:#4cc9f0;
+  --good:#6dffb3;
+}
+* { box-sizing:border-box; }
+body {
+  margin:0;
+  background:radial-gradient(1200px 600px at 20% -10%, #1a1f35 0%, #0b0d12 60%);
+  font-family:-apple-system, system-ui, Segoe UI, Roboto, Arial;
+  color:var(--text);
+}
+header {
+  position:sticky; top:0; z-index:5;
+  backdrop-filter:blur(14px);
+  background:#0b0d12cc;
+  border-bottom:1px solid var(--line);
+}
+.wrap { max-width:900px; margin:auto; padding:16px; }
+
+h1 { font-size:18px; margin:0; }
+h2 { font-size:16px; margin:0 0 6px; }
+h3 { font-size:14px; margin:0 0 8px; color:var(--muted); }
+
+.row { display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+.spread { justify-content:space-between; }
+
+select, input[type=number], button {
+  background:#ffffff10;
+  color:var(--text);
+  border:1px solid var(--line);
+  border-radius:14px;
+  padding:10px 14px;
+  font-size:14px;
+}
+button { cursor:pointer; }
+button.primary { background:#4cc9f022; border-color:#4cc9f055; }
+button.danger { background:#ff5c5c22; border-color:#ff5c5c55; }
+
+.card {
+  background:var(--card);
+  border:1px solid var(--line);
+  border-radius:18px;
+  padding:16px;
+  margin-top:14px;
+}
+
+table { width:100%; border-collapse:collapse; }
+td, th { padding:10px 6px; border-bottom:1px solid var(--line); }
+th { color:var(--muted); font-size:12px; text-align:left; }
+
+.right { text-align:right; }
+
+.check {
+  display:flex; align-items:center; gap:12px;
+  padding:10px 6px;
+  border-bottom:1px solid var(--line);
+}
+.check input { width:22px; height:22px; }
+
+.badge {
+  font-size:12px;
+  padding:4px 8px;
+  border-radius:999px;
+  background:#ffffff14;
+  border:1px solid var(--line);
+}
+
+.good { color:var(--good); }
+.hidden { display:none; }
+</style>
+</head>
+
+<body>
+<header>
+<div class="wrap row spread">
+  <div>
+    <h1>End of Night Closer</h1>
+    <div class="row">
+      <span class="badge">Bar</span>
+      <select id="barSelect"></select>
+    </div>
+  </div>
+  <div class="row">
+    <button id="showRestock" class="primary">Restock</button>
+    <button id="showClean">Clean-down</button>
+    <button id="newNight" class="danger">New Night</button>
+  </div>
+</div>
+</header>
+
+<main class="wrap">
+
+<section id="restockView" class="card">
+<h2>Restock</h2>
+<div class="row spread">
+  <select id="fridgeSelect"></select>
+  <select id="mode">
+    <option value="missing">Enter missing</option>
+    <option value="current">Enter current</option>
+  </select>
+</div>
+
+<table>
+<thead>
+<tr><th>Drink</th><th class="right">Target</th><th class="right">Count</th><th class="right">Need</th></tr>
+</thead>
+<tbody id="fridgeTable"></tbody>
+</table>
+
+<div class="row spread" style="margin-top:10px">
+  <span class="badge" id="fridgeNeed">Need: 0</span>
+  <button id="showPick" class="primary">Pick List</button>
+</div>
+</section>
+
+<section id="pickView" class="card hidden">
+<h2>Pick List</h2>
+<div id="pickList"></div>
+</section>
+
+<section id="cleanView" class="card hidden">
+<h2>Clean-down</h2>
+<div id="cleanList"></div>
+</section>
+
+</main>
+
+<script>
+const DATA = {
+  bars: {
+    barcadia: {
+      name:"Barcadia",
+      templates:{
+        beer:[
+          {k:"carling",l:"Carling",t:24},
+          {k:"coors",l:"Coors",t:24}
+        ]
+      },
+      fridges:[
+        {id:"f1",name:"Fridge 1",tpl:"beer"},
+        {id:"f2",name:"Fridge 2",tpl:"beer"}
+      ],
+      clean:[
+        {s:"BAR",t:[
+          "Bottle condoms on",
+          "Glass bin taken out",
+          "Waste bin taken out",
+          "Place mats and spirit measures in red bucket",
+          "Red bucket removed",
+          "All sides wiped down"
+        ]},
+        {s:"FLOOR",t:[
+          "Floors swept",
+          "Tables wiped down",
+          "Rubbish sorted"
+        ]},
+        {s:"RESET BAR",t:["Reset bar"]}
+      ]
+    }
+  }
+};
+
+const LS="closer_state_v1";
+let state=JSON.parse(localStorage.getItem(LS)||"{}");
+
+const barSel=document.getElementById("barSelect");
+const fridgeSel=document.getElementById("fridgeSelect");
+const table=document.getElementById("fridgeTable");
+const pick=document.getElementById("pickList");
+const clean=document.getElementById("cleanList");
+
+Object.entries(DATA.bars).forEach(([k,v])=>{
+  barSel.innerHTML+=`<option value="${k}">${v.name}</option>`;
+});
+
+function save(){localStorage.setItem(LS,JSON.stringify(state));}
+
+function curBar(){return DATA.bars[barSel.value];}
+function curFridge(){return curBar().fridges.find(f=>f.id===fridgeSel.value);}
+
+function renderFridges(){
+  fridgeSel.innerHTML="";
+  curBar().fridges.forEach(f=>{
+    fridgeSel.innerHTML+=`<option value="${f.id}">${f.name}</option>`;
+  });
+}
+
+function need(target,val,mode){
+  if(val==null)return 0;
+  return mode==="missing"?val:Math.max(0,target-val);
+}
+
+function renderRestock(){
+  const bar=curBar();
+  const fridge=curFridge();
+  const items=bar.templates[fridge.tpl];
+  table.innerHTML="";
+  let total=0;
+  items.forEach(i=>{
+    const v=state[fridge.id]?.[i.k];
+    const n=need(i.t,v,mode.value);
+    total+=n;
+    table.innerHTML+=`
+<tr>
+<td>${i.l}</td>
+<td class="right">${i.t}</td>
+<td class="right"><input type="number" min="0" value="${v??""}"
+oninput="state['${fridge.id}']??={}; state['${fridge.id}']['${i.k}']=+this.value; save(); renderRestock();"></td>
+<td class="right">${n}</td>
+</tr>`;
+  });
+  fridgeNeed.textContent=`Need: ${total}`;
+}
+
+function renderPick(){
+  pick.innerHTML="";
+  const bar=curBar();
+  const totals={};
+  bar.fridges.forEach(f=>{
+    bar.templates[f.tpl].forEach(i=>{
+      const v=state[f.id]?.[i.k];
+      const n=need(i.t,v,mode.value);
+      if(n>0) totals[i.l]=(totals[i.l]||0)+n;
+    });
+  });
+  Object.entries(totals).forEach(([l,q])=>{
+    pick.innerHTML+=`<div class="check"><input type="checkbox"><strong>${l}</strong><span class="badge">x${q}</span></div>`;
+  });
+}
+
+function renderClean(){
+  clean.innerHTML="";
+  curBar().clean.forEach(sec=>{
+    clean.innerHTML+=`<h3>${sec.s}</h3>`;
+    sec.t.forEach(t=>{
+      clean.innerHTML+=`<div class="check"><input type="checkbox"><span>${t}</span></div>`;
+    });
+  });
+}
+
+barSel.onchange=()=>{renderFridges(); renderRestock(); renderClean();};
+fridgeSel.onchange=renderRestock;
+showPick.onclick=()=>{pickView.classList.remove("hidden"); renderPick();};
+showRestock.onclick=()=>{restockView.classList.remove("hidden"); cleanView.classList.add("hidden");};
+showClean.onclick=()=>{cleanView.classList.remove("hidden"); restockView.classList.add("hidden"); renderClean();};
+newNight.onclick=()=>{if(confirm("Clear tonight?")){state={}; save(); renderRestock();}};
+
+renderFridges();
+renderRestock();
+renderClean();
+</script>
+</body>
+</html>
