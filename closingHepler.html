@@ -444,6 +444,19 @@
       display: grid;
       gap: 12px;
     }
+    /* MOBILE-FIRST STACK — THIS FIXES A2HS */
+.mobile-stack{
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* Desktop restores grid layout */
+@media (min-width: 981px){
+  .mobile-stack{
+    display: contents;
+  }
+}
   </style>
 </head>
 
@@ -469,6 +482,7 @@
   </header>
 
   <div class="grid">
+    <div class="mobile-stack">
     <!-- LEFT: FRIDGES -->
     <section class="card" aria-label="Fridge restock">
       <div class="cardhead">
@@ -561,6 +575,7 @@
       </section>
 
     </aside>
+    </div>
   </div>
 </div>
 
