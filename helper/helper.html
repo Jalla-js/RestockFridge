@@ -679,7 +679,78 @@ const DEFAULT_SETUP = {
           "Reset bar"
         ]}
       ]
+    },
+    {
+  "id": "garden",
+  "name": "Garden Bar",
+  "fridges": [
+    {
+      "id": "gardenBeer",
+      "name": "Beer Fridge",
+      "hint": "Beers & Old Mout",
+      "items": [
+        { "key": "bud", "label": "Budweiser", "target": 10 },
+        { "key": "sol", "label": "Sol", "target": 12 },
+        { "key": "peroni", "label": "Peroni", "target": 12 },
+
+        { "key": "oldmtPineapple", "label": "Old Mout Pineapple & Raspberry", "target": 4 },
+        { "key": "oldmtKiwi", "label": "Old Mout Kiwi & Lime", "target": 4 },
+        { "key": "oldmtBerries", "label": "Old Mout Berries & Cherries", "target": 4 }
+      ]
+    },
+    {
+      "id": "gardenAlcopops",
+      "name": "Alcopops Fridge",
+      "hint": "WKD / Hooch",
+      "items": [
+        { "key": "orange", "label": "Orange", "target": 30 },
+        { "key": "blue", "label": "Blue", "target": 30 },
+        { "key": "applemango", "label": "Apple & Mango", "target": 12 },
+        { "key": "tropical", "label": "Tropical", "target": 24 },
+        { "key": "cherry", "label": "Cherry", "target": 12 },
+        { "key": "ice", "label": "Ice", "target": 24 },
+        { "key": "hooch", "label": "Hooch", "target": 18 }
+      ]
+    },
+    {
+      "id": "gardenSoft",
+      "name": "Soft Drinks Fridge",
+      "hint": "Mixers & Energy",
+      "items": [
+        { "key": "dietcoke", "label": "Diet Coke", "target": 3 },
+        { "key": "coke", "label": "Coke", "target": 3 },
+        { "key": "tonic", "label": "Tonic", "target": 6 },
+        { "key": "j20", "label": "J20", "target": 3 },
+        { "key": "redbull", "label": "Red Bull", "target": 3 }
+      ]
     }
+  ],
+  "cleanDown": [
+    {
+      "section": "BAR",
+      "tasks": [
+        "Bottle condoms on",
+        "Glass bin taken out",
+        "Waste bin taken out",
+        "Surfaces wiped down"
+      ]
+    },
+    {
+      "section": "FLOOR",
+      "tasks": [
+        "Floors swept",
+        "Tables wiped down",
+        "Rubbish sorted"
+      ]
+    },
+    {
+      "section": "RESET BAR",
+      "tasks": [
+        "Reset garden bar"
+      ]
+    }
+  ]
+}
   ]
 };
 
