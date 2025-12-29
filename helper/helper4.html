@@ -1,0 +1,417 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Close Checklist">
+<meta name="theme-color" content="#070A10">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=yes">
+
+<title>Trilogy • Close Checklist</title>
+
+<style>
+/* ================= CORE THEME ================= */
+:root{
+  --bg:#070A10;
+  --panel:rgba(255,255,255,.06);
+  --stroke:rgba(255,255,255,.12);
+  --text:rgba(255,255,255,.92);
+  --muted:rgba(255,255,255,.6);
+  --good:#28d17c;
+  --warn:#ffcc66;
+  --bad:#ff5a67;
+  --accent:#7C5CFF;
+  --accent2:#23D5FF;
+  --radius:16px;
+  --radius2:12px;
+  --navH:64px;
+}
+
+*{box-sizing:border-box}
+html,body{
+  margin:0;
+  background:var(--bg);
+  color:var(--text);
+  font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Helvetica,Arial;
+}
+
+/* ================= LAYOUT ================= */
+.wrap{
+  max-width:1100px;
+  margin:auto;
+  padding:16px;
+  padding-bottom:calc(var(--navH) + 24px);
+}
+
+.card{
+  background:var(--panel);
+  border:1px solid var(--stroke);
+  border-radius:var(--radius);
+  padding:14px;
+  display:grid;
+  gap:12px;
+}
+
+h1,h2{margin:0}
+h2{font-size:14px}
+
+.muted{color:var(--muted);font-size:12px}
+
+/* ================= SHELF ================= */
+.itemCard{
+  border:1px solid rgba(255,255,255,.08);
+  border-radius:14px;
+  padding:12px;
+  display:grid;
+  gap:10px;
+  background:rgba(0,0,0,.25);
+}
+
+.shelf{
+  display:flex;
+  flex-wrap:wrap;
+  gap:6px;
+}
+
+.bottle{
+  width:10px;
+  height:24px;
+  border-radius:5px 5px 7px 7px;
+  background:rgba(255,255,255,.08);
+  position:relative;
+}
+
+.bottle::before{
+  content:"";
+  position:absolute;
+  top:-6px;
+  left:2px;
+  right:2px;
+  height:7px;
+  border-radius:4px;
+  background:rgba(255,255,255,.12);
+}
+
+.bottle.fill{
+  background:linear-gradient(180deg,var(--accent),var(--accent2));
+}
+
+/* ================= CONTROLS ================= */
+.row{
+  display:grid;
+  grid-template-columns:1fr auto;
+  gap:10px;
+  align-items:center;
+}
+
+.stats{
+  display:flex;
+  gap:8px;
+  flex-wrap:wrap;
+}
+
+.chip{
+  padding:5px 8px;
+  font-size:11px;
+  border-radius:999px;
+  border:1px solid var(--stroke);
+}
+
+.good{color:var(--good)}
+.bad{color:var(--bad)}
+.warn{color:var(--warn)}
+
+.controls{
+  display:flex;
+  gap:6px;
+  flex-wrap:wrap;
+}
+
+button{
+  border-radius:10px;
+  border:1px solid var(--stroke);
+  background:rgba(255,255,255,.06);
+  color:var(--text);
+  padding:6px 10px;
+  font-size:12px;
+}
+
+button:active{transform:scale(.96)}
+
+input{
+  width:70px;
+  background:rgba(255,255,255,.06);
+  border:1px solid var(--stroke);
+  border-radius:10px;
+  padding:6px;
+  color:var(--text);
+  font-size:14px;
+}
+
+/* ================= BOTTOM NAV ================= */
+.bottomNav{
+  position:fixed;
+  bottom:0;left:0;right:0;
+  height:var(--navH);
+  background:rgba(10,12,18,.92);
+  display:grid;
+  grid-template-columns:repeat(4,1fr);
+  border-top:1px solid rgba(255,255,255,.1);
+}
+
+.navBtn{
+  display:grid;
+  place-items:center;
+  gap:4px;
+  font-size:11px;
+  color:var(--muted);
+}
+
+.navBtn.active{color:var(--text)}
+</style>
+</head>
+
+<body>
+<div class="wrap">
+  <h1>Close Checklist</h1>
+  <div class="muted" id="barLabel"></div>
+
+  <div id="fridgeView" class="card"></div>
+</div>
+
+<nav class="bottomNav">
+  <div class="navBtn active">🧊<div>Fridges</div></div>
+  <div class="navBtn">📋<div>Lists</div></div>
+  <div class="navBtn">🧽<div>Clean</div></div>
+  <div class="navBtn">⚙️<div>Tools</div></div>
+</nav>
+
+<script>
+/* ================= HAPTICS ================= */
+const haptic = (ms=8)=>{ if(navigator.vibrate) navigator.vibrate(ms) }
+
+/* ================= DATA ================= */
+const setup = ${JSON.stringify(DEFAULT_SETUP, null, 2)}
+
+/* ================= STATE ================= */
+let state = JSON.parse(localStorage.getItem("state_v4")) || {
+  bar: "barcadia",
+  fridge: 0,
+  items:{}
+}
+
+function save(){ localStorage.setItem("state_v4", JSON.stringify(state)) }
+
+/* ================= LOGIC ================= */
+function getItemState(fid, idx){
+  const k = fid+"_"+idx
+  if(!state.items[k]){
+    state.items[k]={ missing:0, grabbed:0, short:false, crateSize:24 }
+  }
+  return state.items[k]
+}
+
+function render(){
+  const bar = setup.bars.find(b=>b.id===state.bar)
+  document.getElementById("barLabel").textContent = bar.name
+
+  const fridge = bar.fridges[state.fridge]
+  const wrap = document.getElementById("fridgeView")
+  wrap.innerHTML = `<h2>${fridge.name}</h2>`
+
+  fridge.items.forEach((it,i)=>{
+    const st = getItemState(fridge.id,i)
+    const left = Math.max(0, st.missing - st.grabbed)
+    const bottles = Math.max(1, Math.min(48, it.target))
+
+    wrap.innerHTML += `
+      <div class="itemCard">
+        <strong>${it.label}</strong>
+
+        <div class="shelf">
+          ${Array.from({length:bottles}).map((_,x)=>
+            `<div class="bottle ${x < bottles-left ? "fill":""}"></div>`
+          ).join("")}
+        </div>
+
+        <div class="stats">
+          <span class="chip warn">Missing ${st.missing}</span>
+          <span class="chip good">Grabbed ${st.grabbed}</span>
+          <span class="chip ${left? "bad":"good"}">Left ${left}</span>
+        </div>
+
+        <div class="controls">
+          <button onclick="st.grabbed+=st.crateSize;haptic();save();render()">+1 crate</button>
+          <button onclick="st.grabbed+=Math.floor(st.crateSize/2);haptic();save();render()">+½</button>
+          <button onclick="st.grabbed++;haptic();save();render()">+1</button>
+          <button onclick="st.grabbed=Math.max(0,st.grabbed-1);haptic();save();render()">-1</button>
+          <input value="${st.missing}" oninput="st.missing=+this.value||0;save();render()">
+        </div>
+      </div>
+    `
+  })
+}
+
+render()
+
+/* ================= TAB NAV ================= */
+const navBtns = document.querySelectorAll(".navBtn")
+navBtns.forEach((btn, idx)=>{
+  btn.onclick = ()=>{
+    navBtns.forEach(b=>b.classList.remove("active"))
+    btn.classList.add("active")
+    haptic(10)
+
+    if(idx===0) showFridges()
+    if(idx===1) showLists()
+    if(idx===2) showClean()
+    if(idx===3) showTools()
+  }
+})
+
+/* ================= VIEW SWITCHERS ================= */
+function showFridges(){
+  document.getElementById("fridgeView").style.display="grid"
+  document.getElementById("listsView").style.display="none"
+  document.getElementById("cleanView").style.display="none"
+  document.getElementById("toolsView").style.display="none"
+}
+
+function showLists(){
+  document.getElementById("fridgeView").style.display="none"
+  document.getElementById("listsView").style.display="grid"
+  document.getElementById("cleanView").style.display="none"
+  document.getElementById("toolsView").style.display="none"
+  renderPickList()
+}
+
+function showClean(){
+  document.getElementById("fridgeView").style.display="none"
+  document.getElementById("listsView").style.display="none"
+  document.getElementById("cleanView").style.display="grid"
+  document.getElementById("toolsView").style.display="none"
+  renderClean()
+}
+
+function showTools(){
+  document.getElementById("fridgeView").style.display="none"
+  document.getElementById("listsView").style.display="none"
+  document.getElementById("cleanView").style.display="none"
+  document.getElementById("toolsView").style.display="grid"
+}
+
+/* ================= LISTS VIEW ================= */
+const listsView = document.createElement("div")
+listsView.id="listsView"
+listsView.className="card"
+listsView.style.display="none"
+document.querySelector(".wrap").appendChild(listsView)
+
+function renderPickList(){
+  listsView.innerHTML="<h2>Pick list</h2>"
+  const bar = setup.bars.find(b=>b.id===state.bar)
+  const totals = {}
+
+  bar.fridges.forEach(fr=>{
+    fr.items.forEach((it,idx)=>{
+      const st = getItemState(fr.id,idx)
+      const left = Math.max(0, st.missing - st.grabbed)
+      if(left>0){
+        if(!totals[it.key]) totals[it.key]={label:it.label,qty:0}
+        totals[it.key].qty+=left
+      }
+    })
+  })
+
+  Object.values(totals).forEach(it=>{
+    listsView.innerHTML+=`
+      <div class="itemCard">
+        <strong>${it.label}</strong>
+        <div class="chip bad">${it.qty} to get</div>
+      </div>
+    `
+  })
+
+  if(!Object.keys(totals).length){
+    listsView.innerHTML+=`<div class="muted">Nothing missing 🎉</div>`
+  }
+}
+
+/* ================= CLEAN VIEW ================= */
+const cleanView = document.createElement("div")
+cleanView.id="cleanView"
+cleanView.className="card"
+cleanView.style.display="none"
+document.querySelector(".wrap").appendChild(cleanView)
+
+function renderClean(){
+  const bar = setup.bars.find(b=>b.id===state.bar)
+  cleanView.innerHTML="<h2>Clean down</h2>"
+
+  bar.cleanDown.forEach(sec=>{
+    cleanView.innerHTML+=`<div class="muted"><strong>${sec.section}</strong></div>`
+    sec.tasks.forEach(t=>{
+      const id = sec.section+"_"+t
+      state.cleanChecked ??= {}
+      const checked = state.cleanChecked[id]
+
+      cleanView.innerHTML+=`
+        <label class="itemCard">
+          <input type="checkbox" ${checked?"checked":""}
+            onchange="state.cleanChecked['${id}']=this.checked;save()">
+          ${t}
+        </label>
+      `
+    })
+  })
+}
+
+/* ================= TOOLS VIEW ================= */
+const toolsView = document.createElement("div")
+toolsView.id="toolsView"
+toolsView.className="card"
+toolsView.style.display="none"
+document.querySelector(".wrap").appendChild(toolsView)
+
+toolsView.innerHTML=`
+  <h2>Tools</h2>
+  <button onclick="resetAll()">Reset tonight</button>
+  <button onclick="exportSignOff()">Generate sign-off</button>
+  <div class="muted">Stored locally on this device</div>
+`
+
+function resetAll(){
+  haptic(20)
+  if(confirm("Reset all counts?")){
+    state.items={}
+    state.cleanChecked={}
+    save()
+    render()
+  }
+}
+
+/* ================= SIGN-OFF ================= */
+function exportSignOff(){
+  const bar = setup.bars.find(b=>b.id===state.bar)
+  let out=`✅ ${bar.name.toUpperCase()} CLOSED\n\n`
+
+  bar.fridges.forEach(fr=>{
+    fr.items.forEach((it,idx)=>{
+      const st = getItemState(fr.id,idx)
+      const left = Math.max(0, st.missing - st.grabbed)
+      if(left>0){
+        out+=`• ${it.label}: ${left} missing\n`
+      }
+    })
+  })
+
+  navigator.clipboard.writeText(out)
+  alert("Copied to clipboard ✅")
+}
+
+/* ================= INIT ================= */
+showFridges()
+</script>
+</body>
+</html>
