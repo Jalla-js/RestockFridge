@@ -1,0 +1,314 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="theme-color" content="#070A10">
+<title>Close Checklist</title>
+
+<style>
+:root{
+  --bg:#070A10;
+  --panel:rgba(255,255,255,0.06);
+  --stroke:rgba(255,255,255,0.12);
+  --text:rgba(255,255,255,0.92);
+  --muted:rgba(255,255,255,0.55);
+  --accent:#7C5CFF;
+  --good:#28d17c;
+  --bad:#ff5a67;
+}
+
+*{box-sizing:border-box}
+body{
+  margin:0;
+  background:var(--bg);
+  color:var(--text);
+  font-family:system-ui,-apple-system,Segoe UI,Roboto;
+}
+
+.wrap{
+  max-width:900px;
+  margin:0 auto;
+  padding:16px 16px 90px;
+}
+
+header{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  margin-bottom:12px;
+}
+
+h1{
+  font-size:18px;
+  margin:0;
+}
+
+select, button, input{
+  background:var(--panel);
+  color:var(--text);
+  border:1px solid var(--stroke);
+  border-radius:12px;
+  padding:10px;
+  font-size:16px;
+}
+
+button{cursor:pointer}
+
+.card{
+  background:linear-gradient(180deg,rgba(255,255,255,.07),rgba(255,255,255,.04));
+  border:1px solid var(--stroke);
+  border-radius:16px;
+  overflow:hidden;
+}
+
+.cardhead{
+  padding:14px;
+  border-bottom:1px solid rgba(255,255,255,0.08);
+}
+
+.progressWrap{
+  margin-top:8px;
+}
+
+.progressBar{
+  height:6px;
+  border-radius:999px;
+  background:rgba(255,255,255,0.12);
+  overflow:hidden;
+}
+
+.progressFill{
+  height:100%;
+  width:0%;
+  background:linear-gradient(90deg,var(--accent),#23D5FF);
+  transition:width .2s ease;
+}
+
+.cardbody{
+  padding:14px;
+  display:grid;
+  gap:12px;
+}
+
+.row{
+  padding:14px;
+  border-radius:14px;
+  background:rgba(0,0,0,0.18);
+  border:1px solid rgba(255,255,255,0.08);
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+}
+
+.label{
+  font-weight:800;
+  font-size:15px;
+}
+
+.meta{
+  font-size:12px;
+  color:var(--muted);
+}
+
+.inputWrap span{
+  font-size:11px;
+  color:var(--muted);
+}
+
+input.qty{
+  font-size:18px;
+  padding:12px;
+}
+
+.bottomNav{
+  position:fixed;
+  bottom:0;
+  left:0;
+  right:0;
+  height:64px;
+  background:rgba(10,12,18,0.9);
+  border-top:1px solid rgba(255,255,255,0.1);
+  display:grid;
+  grid-template-columns:repeat(2,1fr);
+}
+
+.navBtn{
+  background:none;
+  border:none;
+  color:var(--muted);
+  font-weight:700;
+}
+
+.navBtn.active{color:var(--text)}
+</style>
+</head>
+
+<body>
+<div class="wrap">
+<header>
+  <h1 id="title">Close Checklist</h1>
+  <select id="barSelect"></select>
+</header>
+
+<section class="card">
+  <div class="cardhead">
+    <div id="fridgeTitle"></div>
+    <div class="progressWrap">
+      <div class="progressBar">
+        <div class="progressFill" id="fridgeProgress"></div>
+      </div>
+    </div>
+  </div>
+  <div class="cardbody" id="fridgeBody"></div>
+</section>
+</div>
+
+<nav class="bottomNav">
+  <button class="navBtn active">Fridges</button>
+  <button class="navBtn">Lists</button>
+</nav>
+
+<script>
+/* ---------------- SETUP ---------------- */
+
+const SETUP = {
+  bars:[
+    {
+      id:"botanic",
+      name:"Botanic",
+      fridges:[
+        {
+          name:"Fridge 1",
+          items:[
+            {label:"Orange",target:30},
+            {label:"Blue",target:30},
+            {label:"Ice",target:36}
+          ]
+        },
+        {
+          name:"Fridge 2",
+          items:[
+            {label:"Peroni",target:18},
+            {label:"Sol",target:18}
+          ]
+        }
+      ]
+    }
+  ]
+};
+
+let state = {
+  bar:0,
+  fridge:0,
+  missing:{}
+};
+
+const barSelect = document.getElementById("barSelect");
+const fridgeBody = document.getElementById("fridgeBody");
+const fridgeTitle = document.getElementById("fridgeTitle");
+const progressFill = document.getElementById("fridgeProgress");
+
+let inputRefs = [];
+
+/* ---------------- RENDER ---------------- */
+
+function render(){
+  const bar = SETUP.bars[state.bar];
+  const fridge = bar.fridges[state.fridge];
+
+  fridgeTitle.textContent = fridge.name;
+  fridgeBody.innerHTML = "";
+  inputRefs = [];
+
+  let totalTarget = 0;
+  let totalHave = 0;
+
+  fridge.items.forEach((it,idx)=>{
+    const key = `${state.bar}-${state.fridge}-${idx}`;
+    const missing = state.missing[key] || 0;
+
+    totalTarget += it.target;
+    totalHave += Math.max(0,it.target-missing);
+
+    const row = document.createElement("div");
+    row.className="row";
+    row.innerHTML=`
+      <div class="label">${it.label}</div>
+      <div class="meta">Target ${it.target}</div>
+      <div class="inputWrap">
+        <span>Missing</span>
+        <input class="qty" type="tel" inputmode="numeric" value="${missing||""}">
+      </div>
+    `;
+
+    const input = row.querySelector("input");
+
+    input.addEventListener("input",()=>{
+      state.missing[key]=parseInt(input.value)||0;
+      updateProgress();
+    });
+
+    input.addEventListener("keydown",e=>{
+      if(e.key==="Enter"){
+        e.preventDefault();
+        const i = inputRefs.indexOf(input);
+        if(inputRefs[i+1]){
+          inputRefs[i+1].focus();
+        }else{
+          nextFridge();
+        }
+      }
+    });
+
+    inputRefs.push(input);
+    fridgeBody.appendChild(row);
+  });
+
+  updateProgress(totalHave,totalTarget);
+}
+
+function updateProgress(){
+  const bar = SETUP.bars[state.bar];
+  const fridge = bar.fridges[state.fridge];
+
+  let t=0,h=0;
+  fridge.items.forEach((it,idx)=>{
+    const k=`${state.bar}-${state.fridge}-${idx}`;
+    const m=state.missing[k]||0;
+    t+=it.target;
+    h+=Math.max(0,it.target-m);
+  });
+
+  const pct = t?Math.round((h/t)*100):100;
+  progressFill.style.width = pct+"%";
+}
+
+/* ---------------- NAV ---------------- */
+
+function nextFridge(){
+  const bar = SETUP.bars[state.bar];
+  state.fridge = (state.fridge+1)%bar.fridges.length;
+  render();
+  setTimeout(()=>inputRefs[0]?.focus(),50);
+}
+
+/* ---------------- INIT ---------------- */
+
+SETUP.bars.forEach((b,i)=>{
+  const o=document.createElement("option");
+  o.value=i;
+  o.textContent=b.name;
+  barSelect.appendChild(o);
+});
+
+barSelect.onchange=()=>{
+  state.bar=+barSelect.value;
+  state.fridge=0;
+  render();
+};
+
+render();
+</script>
+</body>
+</html>
