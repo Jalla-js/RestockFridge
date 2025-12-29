@@ -1,0 +1,2142 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+
+  <!-- PWA / iOS A2HS -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Close Checklist">
+  <meta name="theme-color" content="#070A10">
+
+  <!-- Allow pinch zoom; we’ll block double-tap zoom in JS -->
+  <meta name="viewport"
+        content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=yes, maximum-scale=5" />
+  <meta name="color-scheme" content="dark">
+  <title>Trilogy • Close Checklist</title>
+
+  <!-- FAVICON: replace with your own files if you want -->
+  <!-- TIP: For iOS home screen icon, use a 180x180 PNG with NO transparency and NO padding -->
+  <link rel="icon" type="image/svg+xml"
+        href='data:image/svg+xml;utf8,
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="%237C5CFF"/>
+      <stop offset="1" stop-color="%2323D5FF"/>
+    </linearGradient>
+    <filter id="glow" x="-40%" y="-40%" width="180%" height="180%">
+      <feGaussianBlur stdDeviation="6" result="b"/>
+      <feMerge>
+        <feMergeNode in="b"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+  <rect x="22" y="18" width="212" height="220" rx="34" fill="%23070A10" stroke="rgba(255,255,255,0.14)" stroke-width="4"/>
+  <rect x="48" y="48" width="160" height="168" rx="22" fill="rgba(255,255,255,0.06)" stroke="rgba(255,255,255,0.14)" stroke-width="4"/>
+  <rect x="58" y="62" width="14" height="140" rx="7" fill="url(%23g)" filter="url(%23glow)"/>
+  <g fill="rgba(255,255,255,0.14)">
+    <rect x="78" y="84" width="118" height="4" rx="2"/>
+    <rect x="78" y="132" width="118" height="4" rx="2"/>
+    <rect x="78" y="180" width="118" height="4" rx="2"/>
+  </g>
+  <g filter="url(%23glow)">
+    <rect x="86" y="72" width="18" height="56" rx="9" fill="url(%23g)"/>
+    <rect x="112" y="78" width="18" height="50" rx="9" fill="url(%23g)"/>
+    <rect x="138" y="70" width="18" height="58" rx="9" fill="url(%23g)"/>
+    <rect x="164" y="80" width="18" height="48" rx="9" fill="url(%23g)"/>
+  </g>
+  <circle cx="192" cy="192" r="26" fill="rgba(35,213,255,0.18)"/>
+  <path d="M180 192l8 8 18-20" fill="none" stroke="%2323D5FF" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>' />
+
+  <!-- iOS icon (best: 180x180 png, no transparency, no padding) -->
+  <!-- Replace apple-touch-icon.png with your real file if you have it -->
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
+  <link rel="icon" sizes="192x192" href="icon-192.png">
+
+  <style>
+    :root{
+      --bg: #070A10;
+      --panel: rgba(255,255,255,0.06);
+      --panel2: rgba(255,255,255,0.09);
+      --stroke: rgba(255,255,255,0.12);
+      --text: rgba(255,255,255,0.92);
+      --muted: rgba(255,255,255,0.65);
+      --muted2: rgba(255,255,255,0.5);
+      --good: #28d17c;
+      --warn: #ffcc66;
+      --bad:  #ff5a67;
+      --accent:#7C5CFF;
+      --accent2:#23D5FF;
+
+      --radius: 16px;
+      --radius2: 12px;
+      --gap: 14px;
+      --gap2: 10px;
+      --shadow: 0 12px 40px rgba(0,0,0,0.45);
+      --shadow2: 0 10px 24px rgba(0,0,0,0.35);
+
+      --navH: 64px;
+    }
+
+    *{ box-sizing: border-box; }
+    html, body{
+      height: 100%;
+      background:
+        radial-gradient(1200px 800px at 10% 10%, rgba(124,92,255,0.18), transparent 55%),
+        radial-gradient(900px 700px at 90% 20%, rgba(35,213,255,0.12), transparent 50%),
+        radial-gradient(1000px 800px at 40% 110%, rgba(40,209,124,0.10), transparent 55%),
+        var(--bg);
+      color: var(--text);
+      margin: 0;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji";
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    body{
+      overscroll-behavior-y: none;
+    }
+
+    a{ color: inherit; }
+
+    /* ====== APP SHELL ====== */
+    .wrap{
+      max-width: 1180px;
+      margin: 0 auto;
+      padding: 18px 16px calc(22px + var(--navH));
+      padding-top: calc(18px + env(safe-area-inset-top));
+      padding-bottom: calc(22px + var(--navH) + env(safe-area-inset-bottom));
+    }
+
+    header{
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+
+    .title{
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .title h1{
+      margin: 0;
+      font-size: 18px;
+      letter-spacing: 0.2px;
+      font-weight: 800;
+    }
+
+    .title .sub{
+      font-size: 12px;
+      color: var(--muted);
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    .pill{
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 7px 10px;
+      border: 1px solid var(--stroke);
+      background: rgba(255,255,255,0.04);
+      border-radius: 999px;
+      box-shadow: var(--shadow2);
+    }
+
+    .btnrow{
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+      justify-content: flex-start;
+    }
+
+    button, select{
+      appearance: none;
+      -webkit-appearance: none;
+      border: 1px solid var(--stroke);
+      background: rgba(255,255,255,0.06);
+      color: var(--text);
+      border-radius: 12px;
+      padding: 10px 12px;
+      font-weight: 650;
+      letter-spacing: 0.2px;
+      box-shadow: var(--shadow2);
+    }
+
+    button{
+      cursor: pointer;
+      touch-action: manipulation;
+    }
+
+    button:active{ transform: translateY(1px); }
+
+    button.primary{
+      border-color: rgba(124,92,255,0.45);
+      background: linear-gradient(135deg, rgba(124,92,255,0.24), rgba(35,213,255,0.14));
+    }
+    button.ghost{
+      background: rgba(255,255,255,0.04);
+    }
+
+    select{
+      padding-right: 34px;
+      width: fit-content;
+    }
+
+    .card{
+      border: 1px solid var(--stroke);
+      border-radius: var(--radius);
+      background: linear-gradient(180deg, rgba(255,255,255,0.07), rgba(255,255,255,0.04));
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      overflow: hidden;
+    }
+
+    .cardhead{
+      padding: 14px 14px 12px;
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .cardhead h2{
+      margin: 0;
+      font-size: 14px;
+      letter-spacing: 0.2px;
+    }
+
+    .cardhead .hint{
+      font-size: 12px;
+      color: var(--muted);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 55%;
+      text-align: right;
+    }
+
+    .cardbody{
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .muted{
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.4;
+    }
+
+    /* ====== VIEWS ====== */
+    .views{ display: grid; gap: 12px; }
+    .view{ display: none; }
+    .view.active{ display: grid; gap: 12px; }
+
+    /* desktop split layout for FRIDGES view */
+    .grid{
+      display: grid;
+      grid-template-columns: 1.35fr 0.9fr;
+      gap: 16px;
+      align-items: start;
+    }
+    @media (max-width: 980px){
+      .grid{ grid-template-columns: 1fr; }
+    }
+
+    .split{
+      display: grid;
+      gap: 12px;
+    }
+
+    /* ====== FRIDGE NAV ====== */
+    .tabs{
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .tab{
+      font-size: 12px;
+      padding: 9px 10px;
+      border-radius: 999px;
+      border: 1px solid var(--stroke);
+      background: rgba(255,255,255,0.04);
+      color: var(--muted);
+    }
+    .tab.active{
+      color: var(--text);
+      border-color: rgba(124,92,255,0.45);
+      background: linear-gradient(135deg, rgba(124,92,255,0.22), rgba(35,213,255,0.12));
+    }
+
+    .navrow{
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 2px;
+    }
+    .navrow .left, .navrow .right{
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+
+    /* ====== INPUT ROWS ====== */
+    .table{
+      display: grid;
+      gap: 10px;
+    }
+
+    .row{
+      display: grid;
+      grid-template-columns: 1fr 80px 110px;
+      gap: 10px;
+      align-items: center;
+      padding: 10px 10px;
+      border: 1px solid rgba(255,255,255,0.08);
+      background: rgba(0,0,0,0.16);
+      border-radius: var(--radius2);
+    }
+
+    .row .name{
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      min-width: 0;
+    }
+
+    .row .name .label{
+      font-weight: 800;
+      font-size: 13px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .row .name .meta{
+      color: var(--muted2);
+      font-size: 11px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .badge{
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      padding: 6px 8px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,0.10);
+      background: rgba(255,255,255,0.05);
+      color: var(--muted);
+      width: 80px;
+      text-align: center;
+    }
+
+    input.qty{
+      width: 110px;
+      font-size: 16px;
+      padding: 10px 12px;
+      border-radius: 12px;
+      border: 1px solid rgba(255,255,255,0.12);
+      background: rgba(255,255,255,0.06);
+      color: var(--text);
+      outline: none;
+    }
+    input.qty:focus{
+      border-color: rgba(35,213,255,0.45);
+      box-shadow: 0 0 0 3px rgba(35,213,255,0.14);
+    }
+
+    /* ====== LISTS ====== */
+    .sectiontitle{
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: 10px;
+    }
+    .sectiontitle .small{
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .list{
+      display: grid;
+      gap: 10px;
+    }
+
+    label.check{
+      display: grid;
+      grid-template-columns: 20px 1fr auto;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 10px;
+      border: 1px solid rgba(255,255,255,0.08);
+      background: rgba(0,0,0,0.16);
+      border-radius: var(--radius2);
+    }
+
+    input[type="checkbox"]{
+      width: 18px;
+      height: 18px;
+      accent-color: var(--accent2);
+    }
+
+    .count{
+      font-size: 12px;
+      color: var(--muted);
+      padding: 6px 8px;
+      border: 1px solid rgba(255,255,255,0.10);
+      background: rgba(255,255,255,0.05);
+      border-radius: 999px;
+      min-width: 50px;
+      text-align: center;
+    }
+
+    .footerbtns{
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      padding-top: 4px;
+    }
+
+    /* ====== PER-FRIDGE BREAKDOWN (dropdown per fridge) ====== */
+    details.fr{
+      border: 1px solid rgba(255,255,255,0.08);
+      background: rgba(0,0,0,0.12);
+      border-radius: var(--radius2);
+      padding: 10px;
+    }
+    details.fr > summary{
+      list-style: none;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      font-weight: 800;
+      font-size: 13px;
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+    details.fr > summary::-webkit-details-marker{ display:none; }
+    .frrows{
+      margin-top: 10px;
+      display: grid;
+      gap: 10px;
+    }
+
+    /* ====== VISUAL FRIDGE “SHELF” UI ====== */
+    .shelf{
+      border: 1px solid rgba(255,255,255,0.10);
+      background: rgba(255,255,255,0.04);
+      border-radius: 14px;
+      padding: 10px;
+      display: grid;
+      gap: 10px;
+    }
+    .shelfTop{
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 10px;
+    }
+    .shelfTop .left{
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .shelfTop .left .nm{
+      font-weight: 900;
+      font-size: 13px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .shelfTop .left .mt{
+      font-size: 11px;
+      color: var(--muted2);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .shelfTop .right{
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      flex-shrink: 0;
+    }
+    .chip{
+      font-size: 11px;
+      padding: 6px 8px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,0.12);
+      background: rgba(0,0,0,0.16);
+      color: var(--muted);
+      white-space: nowrap;
+    }
+    .chip.bad{
+      border-color: rgba(255,90,103,0.35);
+      color: rgba(255,90,103,0.95);
+      background: rgba(255,90,103,0.10);
+    }
+    .chip.good{
+      border-color: rgba(40,209,124,0.35);
+      color: rgba(40,209,124,0.95);
+      background: rgba(40,209,124,0.10);
+    }
+    .bottles{
+      display: grid;
+      grid-auto-flow: column;
+      grid-auto-columns: 10px;
+      gap: 6px;
+      align-items: end;
+      overflow: hidden;
+    }
+    .bottle{
+      height: 20px;
+      border-radius: 6px 6px 8px 8px;
+      border: 1px solid rgba(255,255,255,0.10);
+      background: rgba(255,255,255,0.06);
+      position: relative;
+    }
+    .bottle::before{
+      content:"";
+      position:absolute;
+      top:-7px;
+      left: 2px;
+      right: 2px;
+      height: 8px;
+      border-radius: 6px 6px 4px 4px;
+      border: 1px solid rgba(255,255,255,0.12);
+      background: rgba(255,255,255,0.05);
+    }
+    .bottle.fill{
+      background: linear-gradient(180deg, rgba(124,92,255,0.35), rgba(35,213,255,0.18));
+      border-color: rgba(35,213,255,0.28);
+      box-shadow: 0 0 0 1px rgba(35,213,255,0.10), 0 8px 18px rgba(35,213,255,0.08);
+    }
+    .shelfRule{
+      height: 3px;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.10);
+    }
+
+    /* ====== MODALS ====== */
+    .modal{
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.55);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+      z-index: 999;
+    }
+    .modal.open{ display: flex; }
+
+    .modalcard{
+      width: min(900px, 100%);
+      max-height: min(86vh, 900px);
+      overflow: auto;
+      border-radius: 18px;
+      border: 1px solid rgba(255,255,255,0.14);
+      background: rgba(10,12,18,0.92);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+    }
+    .modalhead{
+      position: sticky;
+      top: 0;
+      padding: 14px;
+      border-bottom: 1px solid rgba(255,255,255,0.10);
+      background: rgba(10,12,18,0.92);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+    .modalhead h3{
+      margin: 0;
+      font-size: 14px;
+    }
+    textarea{
+      width: 100%;
+      min-height: 320px;
+      resize: vertical;
+      padding: 12px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      font-size: 12px;
+      border-radius: 14px;
+      border: 1px solid rgba(255,255,255,0.14);
+      background: rgba(255,255,255,0.04);
+      color: var(--text);
+      outline: none;
+    }
+    textarea:focus{
+      border-color: rgba(124,92,255,0.45);
+      box-shadow: 0 0 0 3px rgba(124,92,255,0.14);
+    }
+    .modalbody{
+      padding: 14px;
+      display: grid;
+      gap: 12px;
+    }
+
+    /* ====== BOTTOM NAV ====== */
+    .bottomNav{
+      position: fixed;
+      left: 0; right: 0; bottom: 0;
+      height: calc(var(--navH) + env(safe-area-inset-bottom));
+      padding-bottom: env(safe-area-inset-bottom);
+      border-top: 1px solid rgba(255,255,255,0.10);
+      background: rgba(10,12,18,0.86);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      z-index: 998;
+    }
+    .navBtn{
+      border: none;
+      background: transparent;
+      box-shadow: none;
+      border-radius: 0;
+      padding: 10px 6px;
+      display: grid;
+      place-items: center;
+      gap: 4px;
+      color: var(--muted);
+      font-weight: 800;
+      font-size: 11px;
+    }
+    .navBtn .ico{
+      width: 22px; height: 22px;
+      display: grid; place-items: center;
+      border-radius: 10px;
+      border: 1px solid rgba(255,255,255,0.10);
+      background: rgba(255,255,255,0.04);
+    }
+    .navBtn.active{
+      color: var(--text);
+    }
+    .navBtn.active .ico{
+      border-color: rgba(124,92,255,0.45);
+      background: linear-gradient(135deg, rgba(124,92,255,0.22), rgba(35,213,255,0.12));
+    }
+    .navBtn:active{ transform: none; }
+
+    /* On wide screens, keep the app-feel but still show the classic split in Fridges view */
+    @media (min-width: 981px){
+      header{
+        flex-direction: row;
+        align-items: center;
+        justify-content: space-between;
+      }
+      .btnrow{ justify-content: flex-end; }
+    }
+  </style>
+</head>
+
+<body>
+<div class="wrap">
+  <header>
+    <div class="title">
+      <h1 id="appTitle">Close Checklist</h1>
+      <div class="sub">
+        <span class="pill" id="venuePill">Venue: —</span>
+        <span class="pill" id="barPill">Bar: —</span>
+        <span class="pill" id="progressPill">Pick: 0/0</span>
+      </div>
+    </div>
+
+    <div class="btnrow">
+      <select id="barSelect" aria-label="Select bar"></select>
+      <button class="ghost" id="btnReset" type="button">Reset</button>
+      <button class="ghost" id="btnEditSetup" type="button">Edit setup</button>
+      <button class="primary" id="btnFinishClose" type="button">Finish close</button>
+    </div>
+  </header>
+
+  <div class="views">
+
+    <!-- VIEW: FRIDGES -->
+    <div class="view active" id="view-fridges">
+      <div class="grid">
+        <!-- LEFT: current fridge -->
+        <section class="card" aria-label="Fridge restock">
+          <div class="cardhead">
+            <h2 id="fridgeTitle">Fridge</h2>
+            <div class="hint" id="fridgeHint">—</div>
+          </div>
+
+          <div class="cardbody">
+            <div class="tabs" id="fridgeTabs"></div>
+
+            <div class="navrow">
+              <div class="left">
+                <button class="ghost" id="btnPrev" type="button">← Prev</button>
+                <button class="ghost" id="btnNext" type="button">Next →</button>
+              </div>
+              <div class="right">
+                <span class="muted" id="fridgeCounter">—</span>
+              </div>
+            </div>
+
+            <!-- Visual shelf UI -->
+            <div class="table" id="shelfVisual"></div>
+
+            <div class="shelfRule"></div>
+
+            <!-- Input rows -->
+            <div class="table" id="fridgeTable"></div>
+
+            <div class="muted">
+              Tip: type how many are <b>missing</b>. Your pick list updates live.
+            </div>
+          </div>
+        </section>
+
+        <!-- RIGHT: quick pick list preview -->
+        <aside class="split">
+          <section class="card" aria-label="Pick list preview">
+            <div class="cardhead">
+              <h2>Pick list (summary)</h2>
+              <div class="hint" id="pickHint">Auto totals</div>
+            </div>
+            <div class="cardbody">
+              <div class="sectiontitle">
+                <div class="small">Top items to grab</div>
+                <div class="small" id="pickTotals">—</div>
+              </div>
+              <div class="list" id="pickListPreview"></div>
+              <div class="muted">Full pick list is in the <b>Lists</b> tab.</div>
+            </div>
+          </section>
+
+          <section class="card" aria-label="Per-fridge breakdown preview">
+            <div class="cardhead">
+              <h2>Per-fridge breakdown</h2>
+              <div class="hint">Dropdowns</div>
+            </div>
+            <div class="cardbody">
+              <div class="list" id="fridgeBreakdownPreview"></div>
+              <div class="muted">Full breakdown is in the <b>Lists</b> tab.</div>
+            </div>
+          </section>
+        </aside>
+      </div>
+    </div>
+
+    <!-- VIEW: LISTS -->
+    <div class="view" id="view-lists">
+      <section class="card" aria-label="Pick list">
+        <div class="cardhead">
+          <h2>Pick list (what to get)</h2>
+          <div class="hint">Auto totals</div>
+        </div>
+        <div class="cardbody">
+          <div class="sectiontitle">
+            <div class="small">Tick off as you collect stock</div>
+            <div class="small" id="pickTotalsFull">—</div>
+          </div>
+          <div class="list" id="pickList"></div>
+          <div class="footerbtns">
+            <button class="ghost" id="btnCheckAllPick" type="button">Check all</button>
+            <button class="ghost" id="btnUncheckAllPick" type="button">Uncheck all</button>
+          </div>
+          <div class="muted">Totals across all fridges for the selected bar.</div>
+        </div>
+      </section>
+
+      <section class="card" aria-label="Per-fridge breakdown">
+        <div class="cardhead">
+          <h2>Per-fridge breakdown</h2>
+          <div class="hint">Tap to expand</div>
+        </div>
+        <div class="cardbody">
+          <div class="list" id="fridgeBreakdown"></div>
+          <div class="muted">Useful if you grab stock in runs per fridge.</div>
+        </div>
+      </section>
+    </div>
+
+    <!-- VIEW: CLEAN -->
+    <div class="view" id="view-clean">
+      <section class="card" aria-label="Clean down">
+        <div class="cardhead">
+          <h2 id="cleanTitle">Clean down</h2>
+          <div class="hint">Checklist</div>
+        </div>
+        <div class="cardbody">
+          <div class="sectiontitle">
+            <div class="small">Do these before you finish</div>
+            <div class="small" id="cleanTotals">—</div>
+          </div>
+          <div class="list" id="cleanList"></div>
+          <div class="footerbtns">
+            <button class="ghost" id="btnCheckAllClean" type="button">Check all</button>
+            <button class="ghost" id="btnUncheckAllClean" type="button">Uncheck all</button>
+          </div>
+          <div class="muted">Add/edit bars and clean-down tasks in <b>Edit setup</b>.</div>
+        </div>
+      </section>
+    </div>
+
+    <!-- VIEW: SETTINGS -->
+    <div class="view" id="view-settings">
+      <section class="card" aria-label="About & tools">
+        <div class="cardhead">
+          <h2>App tools</h2>
+          <div class="hint">Local-first</div>
+        </div>
+        <div class="cardbody">
+          <div class="muted">
+            This app stores your setup + tonight’s counts on your phone (localStorage).
+            If you update the HTML file later and don’t see changes, tap <b>Load default</b> in the setup editor,
+            or clear website data for this site.
+          </div>
+
+          <div class="footerbtns">
+            <button class="ghost" id="btnForceDefault" type="button">Force load default</button>
+            <button class="ghost" id="btnClearStorage" type="button">Clear all saved data</button>
+          </div>
+
+          <div class="muted" id="storageStatus"></div>
+        </div>
+      </section>
+    </div>
+
+  </div>
+</div>
+
+<!-- BOTTOM NAV -->
+<nav class="bottomNav" aria-label="Bottom navigation">
+  <button class="navBtn active" data-tab="fridges" type="button">
+    <div class="ico">🧊</div>
+    Fridges
+  </button>
+  <button class="navBtn" data-tab="lists" type="button">
+    <div class="ico">📋</div>
+    Lists
+  </button>
+  <button class="navBtn" data-tab="clean" type="button">
+    <div class="ico">🧽</div>
+    Clean
+  </button>
+  <button class="navBtn" data-tab="settings" type="button">
+    <div class="ico">⚙️</div>
+    Tools
+  </button>
+</nav>
+
+<!-- SETUP MODAL -->
+<div class="modal" id="setupModal" role="dialog" aria-modal="true" aria-label="Edit setup">
+  <div class="modalcard">
+    <div class="modalhead">
+      <h3>Edit setup JSON</h3>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end;">
+        <button class="ghost" id="btnLoadDefault" type="button">Load default</button>
+        <button class="ghost" id="btnCancelSetup" type="button">Cancel</button>
+        <button class="primary" id="btnSaveSetup" type="button">Save</button>
+      </div>
+    </div>
+    <div class="modalbody">
+      <div class="muted">
+        Keep it valid JSON. Stored on your phone.
+        <b>Note:</b> Items can repeat (e.g. Orange twice in one fridge) — we track them as separate “slots” but total them together in the pick list.
+      </div>
+      <textarea id="setupTextarea" spellcheck="false"></textarea>
+      <div class="muted" id="setupError" style="display:none;"></div>
+    </div>
+  </div>
+</div>
+
+<!-- SIGN-OFF MODAL -->
+<div class="modal" id="signModal" role="dialog" aria-modal="true" aria-label="Close sign-off">
+  <div class="modalcard">
+    <div class="modalhead">
+      <h3>Close sign-off</h3>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end;">
+        <button class="ghost" id="btnCopySign" type="button">Copy</button>
+        <button class="primary" id="btnCloseSign" type="button">Close</button>
+      </div>
+    </div>
+    <div class="modalbody">
+      <div class="muted">Copy & paste into WhatsApp</div>
+      <textarea id="signText" spellcheck="false"></textarea>
+      <div class="muted" id="copyStatus" style="display:none;"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+/* =========================================================
+   STORAGE KEYS (versioned so updates actually show up)
+   ========================================================= */
+const APP_VERSION = 3;
+const LS_SETUP_KEY = "trilogy_close_setup_v" + APP_VERSION;
+const LS_STATE_KEY = "trilogy_close_state_v" + APP_VERSION;
+
+/* =========================================================
+   DEFAULT SETUP (Barcadia + Garden + Botanic)
+   - Keys are normalized (drink-only, consistent across bars)
+   - Duplicate items in the SAME fridge are allowed (same key)
+   ========================================================= */
+const DEFAULT_SETUP = {
+  version: APP_VERSION,
+  venue: "Trilogy",
+  bars: [
+    {
+      id: "barcadia",
+      name: "Barcadia",
+      fridges: [
+        {
+          id: "barcadia_A",
+          name: "Fridge A",
+          hint: "Alcopops",
+          items: [
+            { key: "orange", label: "Orange", target: 36 },
+            { key: "blue", label: "Blue", target: 36 },
+            { key: "apple_mango", label: "Apple & Mango", target: 12 },
+            { key: "tropical", label: "Tropical", target: 24 },
+            { key: "ice", label: "Ice", target: 24 },
+            { key: "cherry", label: "Cherry", target: 12 },
+            { key: "hooch", label: "Hooch", target: 18 }
+          ]
+        },
+        {
+          id: "barcadia_B",
+          name: "Fridge B",
+          hint: "Beers",
+          items: [
+            { key: "desperados", label: "Desperados", target: 24 },
+            { key: "budweiser", label: "Budweiser", target: 24 },
+            { key: "sol", label: "Sol", target: 20 },
+            { key: "peroni", label: "Peroni", target: 20 },
+            { key: "san_miguel", label: "San Miguel", target: 20 },
+            { key: "old_mout_pineapple_raspberry", label: "Old Mout Pineapple & Raspberry", target: 4 },
+            { key: "old_mout_kiwi_lime", label: "Old Mout Kiwi & Lime", target: 4 },
+            { key: "old_mout_berries_cherries", label: "Old Mout Berries & Cherries", target: 4 }
+          ]
+        },
+        {
+          id: "barcadia_C",
+          name: "Fridge C",
+          hint: "Alcopops",
+          items: [
+            { key: "orange", label: "Orange", target: 30 },
+            { key: "blue", label: "Blue", target: 30 },
+            { key: "apple_mango", label: "Apple & Mango", target: 12 },
+            { key: "tropical", label: "Tropical", target: 24 },
+            { key: "ice", label: "Ice", target: 24 },
+            { key: "cherry", label: "Cherry", target: 12 },
+            { key: "blackcurrant", label: "Blackcurrant", target: 18 }
+          ]
+        }
+      ],
+      cleanDown: [
+        { section: "BAR", tasks: [
+          "Bottle condoms on",
+          "Glass bin taken out",
+          "Waste bin taken out",
+          "Place mats and spirit measures in red bucket",
+          "Red bucket removed",
+          "All sides wiped down"
+        ]},
+        { section: "FLOOR", tasks: [
+          "Floors swept",
+          "Tables wiped down",
+          "Rubbish sorted"
+        ]},
+        { section: "RESET BAR", tasks: [
+          "Reset bar"
+        ]}
+      ]
+    },
+
+    {
+      id: "garden",
+      name: "Garden Bar",
+      fridges: [
+        {
+          id: "garden_beer",
+          name: "Beer Fridge",
+          hint: "Beers & Old Mout",
+          items: [
+            { key: "budweiser", label: "Budweiser", target: 10 },
+            { key: "sol", label: "Sol", target: 12 },
+            { key: "peroni", label: "Peroni", target: 12 },
+            { key: "old_mout_pineapple_raspberry", label: "Old Mout Pineapple & Raspberry", target: 4 },
+            { key: "old_mout_kiwi_lime", label: "Old Mout Kiwi & Lime", target: 4 },
+            { key: "old_mout_berries_cherries", label: "Old Mout Berries & Cherries", target: 4 }
+          ]
+        },
+        {
+          id: "garden_alcopops",
+          name: "Alcopops Fridge",
+          hint: "WKD / Hooch",
+          items: [
+            { key: "orange", label: "Orange", target: 30 },
+            { key: "blue", label: "Blue", target: 30 },
+            { key: "apple_mango", label: "Apple & Mango", target: 12 },
+            { key: "tropical", label: "Tropical", target: 24 },
+            { key: "cherry", label: "Cherry", target: 12 },
+            { key: "ice", label: "Ice", target: 24 },
+            { key: "hooch", label: "Hooch", target: 18 }
+          ]
+        },
+        {
+          id: "garden_soft",
+          name: "Soft Drinks Fridge",
+          hint: "Mixers & Energy",
+          items: [
+            { key: "diet_coke", label: "Diet Coke", target: 3 },
+            { key: "coke", label: "Coke", target: 3 },
+            { key: "tonic", label: "Tonic", target: 6 },
+            { key: "j20", label: "J20", target: 3 },
+            { key: "red_bull", label: "Red Bull", target: 3 }
+          ]
+        }
+      ],
+      cleanDown: [
+        { section: "BAR", tasks: [
+          "Bottle condoms on",
+          "Waste bin taken out",
+          "Bar wiped down"
+        ]},
+        { section: "FLOOR", tasks: [
+          "Floors swept",
+          "Tables wiped down",
+          "Rubbish sorted",
+          "Ash trays cleaned"
+        ]},
+        { section: "RESET BAR", tasks: [
+          "Reset garden bar"
+        ]}
+      ]
+    },
+
+    /* ===================== BOTANIC (your “duplicated-ish fridges”) ===================== */
+    {
+      id: "botanic",
+      name: "Botanic",
+      fridges: [
+        /* Group 1 (0% + main) */
+        {
+          id: "botanic_g1",
+          name: "Botanic Fridge 1",
+          hint: "0% + Mixers/Alcopops",
+          items: [
+            { key: "peroni_zero", label: "Peroni 0%", target: 10, note: "2×5" },
+            { key: "berries_cherries_zero", label: "Berries & Cherries 0%", target: 10, note: "2×5" },
+            { key: "heineken_zero", label: "Heineken 0%", target: 6, note: "2×3" },
+
+            { key: "tropical", label: "Tropical", target: 30, note: "6×5" },
+            { key: "blue", label: "Blue", target: 30, note: "6×5" },
+            { key: "smirnoff_ice", label: "Smirnoff Ice", target: 18, note: "3×6" },
+            { key: "hooch", label: "Hooch", target: 18, note: "3×6" },
+            { key: "ice", label: "Ice", target: 36, note: "6×6" },
+
+            { key: "oasis_summer", label: "Oasis Summer", target: 3, note: "1×3" },
+            { key: "oasis_tropical", label: "Oasis Tropical", target: 3, note: "1×3" },
+            { key: "pepsi_max", label: "Pepsi Max", target: 6, note: "2×3" },
+            { key: "fanta_lemon", label: "Fanta Lemon", target: 6, note: "2×3" },
+            { key: "coke", label: "Coke", target: 3, note: "1×3" },
+            { key: "diet_coke", label: "Diet Coke", target: 3, note: "1×3" },
+            { key: "tonic", label: "Tonic", target: 3, note: "1×3" },
+            { key: "raspberry_lemonade", label: "Raspberry Lemonade", target: 3, note: "1×3" },
+            { key: "elder_lemonade", label: "Elderflower Lemonade", target: 3, note: "1×3" },
+            { key: "j20", label: "J20", target: 3, note: "1×3" },
+
+            { key: "orange", label: "Orange", target: 30, note: "6×5" },
+            { key: "cherry", label: "Cherry", target: 18, note: "3×6" },
+            { key: "apple_mango", label: "Apple & Mango", target: 18, note: "3×6" },
+            { key: "blackcurrant", label: "Blackcurrant", target: 18, note: "6×3" }
+          ]
+        },
+
+        /* Group 2 (orange appears twice in same fridge) */
+        {
+          id: "botanic_g2",
+          name: "Botanic Fridge 2",
+          hint: "Beers + Orange duplicated",
+          items: [
+            { key: "orange", label: "Orange", target: 30, note: "6×5 (shelf 1)" },
+            { key: "orange", label: "Orange", target: 30, note: "6×5 (shelf 2)" },
+            { key: "blue", label: "Blue", target: 36, note: "6×6" },
+
+            { key: "peroni", label: "Peroni", target: 18, note: "3×6" },
+            { key: "desperados", label: "Desperados", target: 18, note: "3×6" },
+            { key: "blackcurrant", label: "Blackcurrant", target: 18, note: "6×3" },
+
+            { key: "old_mout_pineapple_raspberry", label: "Old Mout Pineapple & Raspberry", target: 6, note: "3×2" },
+            { key: "old_mout_kiwi_lime", label: "Old Mout Kiwi & Lime", target: 6, note: "3×2" },
+
+            { key: "san_miguel", label: "San Miguel", target: 10, note: "2×5" },
+            { key: "estrella", label: "Estrella", target: 10, note: "2×5" },
+            { key: "brewdog", label: "BrewDog", target: 10, note: "2×5" },
+
+            { key: "sol", label: "Sol", target: 18, note: "3×6" },
+            { key: "budweiser", label: "Budweiser", target: 18, note: "3×6" },
+            { key: "old_mout_berries_cherries", label: "Old Mout Berries & Cherries", target: 6, note: "3×2" }
+          ]
+        },
+
+        /* Group 3 (repeat of Group 1) */
+        {
+          id: "botanic_g3",
+          name: "Botanic Fridge 3",
+          hint: "Same as Fridge 1",
+          items: [
+            { key: "tropical", label: "Tropical", target: 30, note: "6×5" },
+            { key: "orange", label: "Orange", target: 30, note: "6×5" },
+            { key: "smirnoff_ice", label: "Smirnoff Ice", target: 18, note: "3×6" },
+            { key: "hooch", label: "Hooch", target: 18, note: "3×6" },
+            { key: "ice", label: "Ice", target: 36, note: "6×6" },
+
+            { key: "oasis_summer", label: "Oasis Summer", target: 3, note: "1×3" },
+            { key: "oasis_tropical", label: "Oasis Tropical", target: 3, note: "1×3" },
+            { key: "pepsi_max", label: "Pepsi Max", target: 6, note: "2×3" },
+            { key: "fanta_lemon", label: "Fanta Lemon", target: 6, note: "2×3" },
+            { key: "coke", label: "Coke", target: 3, note: "1×3" },
+            { key: "diet_coke", label: "Diet Coke", target: 3, note: "1×3" },
+            { key: "tonic", label: "Tonic", target: 3, note: "1×3" },
+            { key: "raspberry_lemonade", label: "Raspberry Lemonade", target: 3, note: "1×3" },
+            { key: "elder_lemonade", label: "Elderflower Lemonade", target: 3, note: "1×3" },
+            { key: "j20", label: "J20", target: 3, note: "1×3" },
+
+            { key: "blue", label: "Blue", target: 30, note: "6×5" },
+            { key: "cherry", label: "Cherry", target: 18, note: "3×6" },
+            { key: "apple_mango", label: "Apple & Mango", target: 18, note: "3×6" },
+            { key: "blackcurrant", label: "Blackcurrant", target: 18, note: "6×3" }
+          ]
+        },
+
+        /* Group 4 (repeat of Group 2) */
+        {
+          id: "botanic_g4",
+          name: "Botanic Fridge 4",
+          hint: "Same as Fridge 2",
+          items: [
+            { key: "orange", label: "Orange", target: 30, note: "6×5 (shelf 1)" },
+            { key: "orange", label: "Orange", target: 30, note: "6×5 (shelf 2)" },
+            { key: "blue", label: "Blue", target: 36, note: "6×6" },
+
+            { key: "peroni", label: "Peroni", target: 18, note: "3×6" },
+            { key: "desperados", label: "Desperados", target: 18, note: "3×6" },
+            { key: "blackcurrant", label: "Blackcurrant", target: 18, note: "6×3" },
+
+            { key: "old_mout_kiwi_lime", label: "Old Mout Kiwi & Lime", target: 6, note: "3×2" },
+            { key: "old_mout_pineapple_raspberry", label: "Old Mout Pineapple & Raspberry", target: 6, note: "3×2" },
+
+            { key: "san_miguel", label: "San Miguel", target: 10, note: "2×5" },
+            { key: "estrella", label: "Estrella", target: 10, note: "2×5" },
+            { key: "brewdog", label: "BrewDog", target: 10, note: "2×5" },
+
+            { key: "sol", label: "Sol", target: 18, note: "3×6" },
+            { key: "budweiser", label: "Budweiser", target: 18, note: "3×6" },
+            { key: "old_mout_berries_cherries", label: "Old Mout Berries & Cherries", target: 6, note: "3×2" }
+          ]
+        }
+      ],
+      cleanDown: [
+        { section: "BAR", tasks: [
+          "Bottle condoms on",
+          "Glass bin taken out",
+          "Waste bin taken out",
+          "All sides wiped down"
+        ]},
+        { section: "FLOOR", tasks: [
+          "Floors swept",
+          "Tables wiped down",
+          "Rubbish sorted"
+        ]},
+        { section: "RESET BAR", tasks: [
+          "Reset botanic bar"
+        ]}
+      ]
+    }
+  ]
+};
+
+/* =========================================================
+   STATE
+   - missingByBar[barId][fridgeId][itemId] = number
+   - pickChecked[barId][drinkKey] = boolean
+   - cleanChecked[barId][taskId] = boolean
+   ========================================================= */
+let setup = loadSetup();
+let state = loadState();
+
+/* =========================================================
+   LOAD / SAVE
+   ========================================================= */
+function loadSetup(){
+  try{
+    const raw = localStorage.getItem(LS_SETUP_KEY);
+    if(!raw) return structuredClone(DEFAULT_SETUP);
+    const parsed = JSON.parse(raw);
+    if(!parsed || typeof parsed !== "object") return structuredClone(DEFAULT_SETUP);
+    if(parsed.version !== APP_VERSION) return structuredClone(DEFAULT_SETUP);
+    return parsed;
+  }catch(e){
+    return structuredClone(DEFAULT_SETUP);
+  }
+}
+
+function saveSetup(newSetup){
+  localStorage.setItem(LS_SETUP_KEY, JSON.stringify(newSetup, null, 2));
+}
+
+function loadState(){
+  try{
+    const raw = localStorage.getItem(LS_STATE_KEY);
+    if(!raw) return freshState();
+    const s = JSON.parse(raw);
+    return s && typeof s === "object" ? s : freshState();
+  }catch(e){
+    return freshState();
+  }
+}
+
+function freshState(){
+  return {
+    selectedBarId: setup?.bars?.[0]?.id || "barcadia",
+    selectedFridgeIndex: 0,
+    missingByBar: {},
+    pickChecked: {},
+    cleanChecked: {},
+    activeTab: "fridges"
+  };
+}
+
+function saveState(){
+  localStorage.setItem(LS_STATE_KEY, JSON.stringify(state));
+}
+
+/* =========================================================
+   HELPERS
+   ========================================================= */
+function byId(id){ return document.getElementById(id); }
+function clamp(n, min, max){ return Math.max(min, Math.min(max, n)); }
+
+function getSelectedBar(){
+  return (setup.bars || []).find(b => b.id === state.selectedBarId) || (setup.bars || [])[0];
+}
+
+function ensureBarBuckets(barId){
+  if(!state.missingByBar[barId]) state.missingByBar[barId] = {};
+  if(!state.pickChecked[barId]) state.pickChecked[barId] = {};
+  if(!state.cleanChecked[barId]) state.cleanChecked[barId] = {};
+}
+
+function taskId(section, task){
+  return (section + "::" + task).toLowerCase().replace(/\s+/g, "_");
+}
+
+function itemId(fridgeId, index){
+  return fridgeId + "::" + index;
+}
+
+function escapeHtml(s){
+  return String(s).replace(/[&<>"']/g, (c) => ({
+    "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
+  }[c]));
+}
+
+/* =========================================================
+   TOP PILLS
+   ========================================================= */
+function setPills(){
+  const bar = getSelectedBar();
+  byId("appTitle").textContent = "Close Checklist";
+  byId("venuePill").textContent = "Venue: " + (setup.venue || "—");
+  byId("barPill").textContent = "Bar: " + (bar?.name || "—");
+  byId("cleanTitle").textContent = "Clean down (" + (bar?.name || "—") + ")";
+}
+
+/* =========================================================
+   BAR SELECT
+   ========================================================= */
+function renderBarSelect(){
+  const sel = byId("barSelect");
+  sel.innerHTML = "";
+  (setup.bars || []).forEach(bar => {
+    const opt = document.createElement("option");
+    opt.value = bar.id;
+    opt.textContent = bar.name;
+    sel.appendChild(opt);
+  });
+
+  // if current selected bar no longer exists
+  if(!(setup.bars || []).some(b => b.id === state.selectedBarId)){
+    state.selectedBarId = (setup.bars || [])[0]?.id;
+    state.selectedFridgeIndex = 0;
+  }
+
+  sel.value = state.selectedBarId;
+  sel.onchange = () => {
+    state.selectedBarId = sel.value;
+    state.selectedFridgeIndex = 0;
+    ensureBarBuckets(state.selectedBarId);
+    saveState();
+    renderAll();
+  };
+}
+
+/* =========================================================
+   MISSING GET/SET (per item slot, supports duplicates)
+   ========================================================= */
+function getMissing(barId, fridgeId, itemIdStr){
+  const b = state.missingByBar[barId] || {};
+  const f = b[fridgeId] || {};
+  const v = f[itemIdStr];
+  return (typeof v === "number" && !isNaN(v)) ? String(v) : "";
+}
+
+function setMissing(barId, fridgeId, itemIdStr, value){
+  ensureBarBuckets(barId);
+  if(!state.missingByBar[barId][fridgeId]) state.missingByBar[barId][fridgeId] = {};
+  state.missingByBar[barId][fridgeId][itemIdStr] = value;
+}
+
+/* =========================================================
+   PICK TOTALS (aggregate by drink key, sums duplicates)
+   ========================================================= */
+function computePickTotalsForBar(bar){
+  ensureBarBuckets(bar.id);
+  const totals = {}; // key -> {key,label,qty}
+
+  const missing = state.missingByBar[bar.id] || {};
+  (bar.fridges || []).forEach(fr => {
+    const frMissing = missing[fr.id] || {};
+    (fr.items || []).forEach((it, idx) => {
+      const id = itemId(fr.id, idx);
+      const n = parseInt(frMissing[id] || 0, 10) || 0;
+      if(n > 0){
+        if(!totals[it.key]) totals[it.key] = { key: it.key, label: it.label, qty: 0 };
+        totals[it.key].qty += n;
+      }
+    });
+  });
+
+  return Object.values(totals).sort((a,b) => (b.qty - a.qty) || a.label.localeCompare(b.label));
+}
+
+function updateProgressPill(){
+  const bar = getSelectedBar();
+  if(!bar) return;
+  const totals = computePickTotalsForBar(bar);
+  const done = totals.filter(it => !!state.pickChecked[bar.id][it.key]).length;
+  byId("progressPill").textContent = `Pick: ${done}/${totals.length}`;
+}
+
+/* =========================================================
+   VISUAL SHELF RENDER
+   - show up to 14 bottle icons per item (scaled view)
+   ========================================================= */
+function renderShelfVisual(currentFridge, bar){
+  const wrap = byId("shelfVisual");
+  wrap.innerHTML = "";
+
+  if(!currentFridge){
+    wrap.innerHTML = `<div class="muted">No fridge selected.</div>`;
+    return;
+  }
+
+  const frMissing = (state.missingByBar[bar.id] || {})[currentFridge.id] || {};
+
+  (currentFridge.items || []).forEach((it, idx) => {
+    const id = itemId(currentFridge.id, idx);
+    const missing = parseInt(frMissing[id] || 0, 10) || 0;
+    const target = parseInt(it.target || 0, 10) || 0;
+    const have = Math.max(0, target - missing);
+
+    const maxIcons = 14;
+    const scale = target > maxIcons ? (target / maxIcons) : 1;
+    const iconsToShow = Math.min(maxIcons, Math.max(1, Math.round(target / scale)));
+    const filledIcons = Math.round((have / Math.max(1, target)) * iconsToShow);
+
+    const shelf = document.createElement("div");
+    shelf.className = "shelf";
+
+    const top = document.createElement("div");
+    top.className = "shelfTop";
+
+    const left = document.createElement("div");
+    left.className = "left";
+    left.innerHTML = `
+      <div class="nm">${escapeHtml(it.label)}</div>
+      <div class="mt">${escapeHtml(it.note || ("Target: " + target))}</div>
+    `;
+
+    const right = document.createElement("div");
+    right.className = "right";
+    const chip1 = document.createElement("div");
+    chip1.className = "chip";
+    chip1.textContent = `Target ${target}`;
+
+    const chip2 = document.createElement("div");
+    chip2.className = "chip " + (missing > 0 ? "bad" : "good");
+    chip2.textContent = missing > 0 ? `Missing ${missing}` : "Full";
+
+    right.appendChild(chip1);
+    right.appendChild(chip2);
+
+    top.appendChild(left);
+    top.appendChild(right);
+
+    const bottles = document.createElement("div");
+    bottles.className = "bottles";
+    for(let i=0; i<iconsToShow; i++){
+      const b = document.createElement("div");
+      b.className = "bottle" + (i < filledIcons ? " fill" : "");
+      bottles.appendChild(b);
+    }
+
+    shelf.appendChild(top);
+    shelf.appendChild(bottles);
+
+    wrap.appendChild(shelf);
+  });
+}
+
+/* =========================================================
+   FRIDGES VIEW (tabs + prev/next + input rows)
+   ========================================================= */
+function renderFridges(){
+  const bar = getSelectedBar();
+  if(!bar) return;
+
+  ensureBarBuckets(bar.id);
+
+  const fridges = bar.fridges || [];
+  const idx = clamp(state.selectedFridgeIndex || 0, 0, Math.max(0, fridges.length - 1));
+  state.selectedFridgeIndex = idx;
+  const current = fridges[idx];
+
+  byId("fridgeTitle").textContent = current ? current.name : "No fridges";
+  byId("fridgeHint").textContent = current ? (current.hint || "") : "";
+  byId("fridgeCounter").textContent = fridges.length ? `Fridge ${idx + 1} of ${fridges.length}` : "—";
+
+  // Tabs
+  const tabs = byId("fridgeTabs");
+  tabs.innerHTML = "";
+  fridges.forEach((f, i) => {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.className = "tab" + (i === idx ? " active" : "");
+    b.textContent = f.name || `Fridge ${i+1}`;
+    b.onclick = () => {
+      state.selectedFridgeIndex = i;
+      saveState();
+      renderFridges();
+      renderPickPreview();
+      renderFridgeBreakdownPreview();
+      renderFridgeBreakdown();
+      updateProgressPill();
+    };
+    tabs.appendChild(b);
+  });
+
+  byId("btnPrev").onclick = () => {
+    state.selectedFridgeIndex = clamp(idx - 1, 0, fridges.length - 1);
+    saveState();
+    renderFridges();
+    renderPickPreview();
+    renderFridgeBreakdownPreview();
+    renderFridgeBreakdown();
+    updateProgressPill();
+  };
+  byId("btnNext").onclick = () => {
+    state.selectedFridgeIndex = clamp(idx + 1, 0, fridges.length - 1);
+    saveState();
+    renderFridges();
+    renderPickPreview();
+    renderFridgeBreakdownPreview();
+    renderFridgeBreakdown();
+    updateProgressPill();
+  };
+
+  // Visual shelf UI
+  renderShelfVisual(current, bar);
+
+  // Input rows
+  const table = byId("fridgeTable");
+  table.innerHTML = "";
+
+  if(!current){
+    table.innerHTML = `<div class="muted">No fridge data found for this bar.</div>`;
+    return;
+  }
+
+  const frMissing = (state.missingByBar[bar.id] || {})[current.id] || {};
+
+  current.items.forEach((it, i) => {
+    const rid = itemId(current.id, i);
+
+    const r = document.createElement("div");
+    r.className = "row";
+
+    const name = document.createElement("div");
+    name.className = "name";
+    name.innerHTML = `
+      <div class="label">${escapeHtml(it.label)}</div>
+      <div class="meta">${escapeHtml(it.note || ("Target: " + it.target))}</div>
+    `;
+
+    const badge = document.createElement("div");
+    badge.className = "badge";
+    badge.textContent = "Missing";
+
+    const input = document.createElement("input");
+    input.className = "qty";
+    input.type = "tel";          // iOS keypad stability
+    input.inputMode = "numeric";
+    input.autocomplete = "off";
+    input.autocapitalize = "off";
+    input.spellcheck = false;
+    input.placeholder = "0";
+    const v = frMissing[rid];
+    input.value = (typeof v === "number" && !isNaN(v)) ? String(v) : "";
+
+    input.addEventListener("input", () => {
+      const n = parseInt(input.value || "0", 10);
+      setMissing(bar.id, current.id, rid, isNaN(n) ? 0 : clamp(n, 0, 999));
+      saveState();
+
+      // Update only dependent UI (no full rerender while typing)
+      renderShelfVisual(current, bar);
+      renderPickPreview();
+      renderPickList();
+      renderFridgeBreakdownPreview();
+      renderFridgeBreakdown();
+      updateProgressPill();
+    });
+
+    r.appendChild(name);
+    r.appendChild(badge);
+    r.appendChild(input);
+    table.appendChild(r);
+  });
+}
+
+/* =========================================================
+   PICK LIST (full)
+   ========================================================= */
+function renderPickList(){
+  const bar = getSelectedBar();
+  if(!bar) return;
+  ensureBarBuckets(bar.id);
+
+  const list = byId("pickList");
+  list.innerHTML = "";
+
+  const totals = computePickTotalsForBar(bar);
+  const totalDistinct = totals.length;
+  const totalQty = totals.reduce((sum, x) => sum + x.qty, 0);
+
+  byId("pickTotalsFull").textContent = `${totalDistinct} items • ${totalQty} total`;
+
+  if(totalDistinct === 0){
+    list.innerHTML = `<div class="muted">Nothing missing yet. Start entering counts.</div>`;
+    return;
+  }
+
+  totals.forEach(item => {
+    const row = document.createElement("label");
+    row.className = "check";
+
+    const cb = document.createElement("input");
+    cb.type = "checkbox";
+    cb.checked = !!state.pickChecked[bar.id][item.key];
+    cb.addEventListener("change", () => {
+      state.pickChecked[bar.id][item.key] = cb.checked;
+      saveState();
+      updateProgressPill();
+      renderPickPreview();
+    });
+
+    const text = document.createElement("div");
+    text.innerHTML = `
+      <div style="font-weight:850;font-size:13px">${escapeHtml(item.label)}</div>
+      <div style="color:var(--muted2);font-size:11px">Total to get</div>
+    `;
+
+    const count = document.createElement("div");
+    count.className = "count";
+    count.textContent = item.qty;
+
+    row.appendChild(cb);
+    row.appendChild(text);
+    row.appendChild(count);
+    list.appendChild(row);
+  });
+
+  byId("btnCheckAllPick").onclick = () => {
+    totals.forEach(it => state.pickChecked[bar.id][it.key] = true);
+    saveState();
+    renderPickList();
+    updateProgressPill();
+    renderPickPreview();
+  };
+  byId("btnUncheckAllPick").onclick = () => {
+    totals.forEach(it => state.pickChecked[bar.id][it.key] = false);
+    saveState();
+    renderPickList();
+    updateProgressPill();
+    renderPickPreview();
+  };
+}
+
+/* =========================================================
+   PICK PREVIEW (Fridges view, top ~6)
+   ========================================================= */
+function renderPickPreview(){
+  const bar = getSelectedBar();
+  if(!bar) return;
+
+  const wrap = byId("pickListPreview");
+  wrap.innerHTML = "";
+
+  const totals = computePickTotalsForBar(bar);
+  const totalDistinct = totals.length;
+  const totalQty = totals.reduce((sum, x) => sum + x.qty, 0);
+  byId("pickTotals").textContent = `${totalDistinct} items • ${totalQty} total`;
+
+  if(totalDistinct === 0){
+    wrap.innerHTML = `<div class="muted">Nothing missing yet.</div>`;
+    return;
+  }
+
+  totals.slice(0, 6).forEach(item => {
+    const row = document.createElement("label");
+    row.className = "check";
+
+    const cb = document.createElement("input");
+    cb.type = "checkbox";
+    cb.checked = !!state.pickChecked[bar.id][item.key];
+    cb.addEventListener("change", () => {
+      state.pickChecked[bar.id][item.key] = cb.checked;
+      saveState();
+      updateProgressPill();
+      renderPickList();
+    });
+
+    const text = document.createElement("div");
+    text.innerHTML = `<div style="font-weight:850;font-size:13px">${escapeHtml(item.label)}</div>
+                      <div style="color:var(--muted2);font-size:11px">Total to get</div>`;
+
+    const count = document.createElement("div");
+    count.className = "count";
+    count.textContent = item.qty;
+
+    row.appendChild(cb);
+    row.appendChild(text);
+    row.appendChild(count);
+
+    wrap.appendChild(row);
+  });
+}
+
+/* =========================================================
+   PER-FRIDGE BREAKDOWN (dropdowns, full + preview)
+   ========================================================= */
+function perFridgeNeeded(bar, fridge){
+  const missing = (state.missingByBar[bar.id] || {})[fridge.id] || {};
+  return (fridge.items || [])
+    .map((it, idx) => {
+      const id = itemId(fridge.id, idx);
+      return {
+        key: it.key,
+        label: it.label,
+        note: it.note || "",
+        qty: parseInt(missing[id] || 0, 10) || 0
+      };
+    })
+    .filter(x => x.qty > 0);
+}
+
+function renderFridgeBreakdown(){
+  const bar = getSelectedBar();
+  if(!bar) return;
+  ensureBarBuckets(bar.id);
+
+  const wrap = byId("fridgeBreakdown");
+  wrap.innerHTML = "";
+
+  const fridges = bar.fridges || [];
+  if(fridges.length === 0){
+    wrap.innerHTML = `<div class="muted">No fridges for this bar yet.</div>`;
+    return;
+  }
+
+  fridges.forEach(fridge => {
+    const needed = perFridgeNeeded(bar, fridge);
+    const total = needed.reduce((s,x)=>s+x.qty,0);
+
+    const d = document.createElement("details");
+    d.className = "fr";
+    d.open = total > 0;
+
+    const s = document.createElement("summary");
+    s.innerHTML = `<span>${escapeHtml(fridge.name)}</span><span class="count">${total}</span>`;
+    d.appendChild(s);
+
+    const rows = document.createElement("div");
+    rows.className = "frrows";
+
+    if(needed.length === 0){
+      rows.innerHTML = `<div class="muted">Nothing needed.</div>`;
+    } else {
+      needed.forEach(i => {
+        const row = document.createElement("div");
+        row.className = "check";
+        row.innerHTML = `
+          <div></div>
+          <div>
+            <div style="font-weight:850;font-size:13px">${escapeHtml(i.label)}</div>
+            ${i.note ? `<div style="color:var(--muted2);font-size:11px">${escapeHtml(i.note)}</div>` : ""}
+          </div>
+          <div class="count">${i.qty}</div>
+        `;
+        rows.appendChild(row);
+      });
+    }
+
+    d.appendChild(rows);
+    wrap.appendChild(d);
+  });
+}
+
+function renderFridgeBreakdownPreview(){
+  const bar = getSelectedBar();
+  if(!bar) return;
+  ensureBarBuckets(bar.id);
+
+  const wrap = byId("fridgeBreakdownPreview");
+  wrap.innerHTML = "";
+
+  const fridges = bar.fridges || [];
+  if(fridges.length === 0){
+    wrap.innerHTML = `<div class="muted">No fridges for this bar.</div>`;
+    return;
+  }
+
+  // Show dropdowns, but shorter content
+  fridges.forEach(fridge => {
+    const needed = perFridgeNeeded(bar, fridge);
+    const total = needed.reduce((s,x)=>s+x.qty,0);
+
+    const d = document.createElement("details");
+    d.className = "fr";
+    d.open = total > 0 && needed.length <= 4;
+
+    const s = document.createElement("summary");
+    s.innerHTML = `<span>${escapeHtml(fridge.name)}</span><span class="count">${total}</span>`;
+    d.appendChild(s);
+
+    const rows = document.createElement("div");
+    rows.className = "frrows";
+
+    if(needed.length === 0){
+      rows.innerHTML = `<div class="muted">Nothing needed.</div>`;
+    } else {
+      needed.slice(0, 4).forEach(i => {
+        const row = document.createElement("div");
+        row.className = "check";
+        row.innerHTML = `<div></div><div>${escapeHtml(i.label)}</div><div class="count">${i.qty}</div>`;
+        rows.appendChild(row);
+      });
+      if(needed.length > 4){
+        const more = document.createElement("div");
+        more.className = "muted";
+        more.textContent = `+${needed.length - 4} more…`;
+        rows.appendChild(more);
+      }
+    }
+
+    d.appendChild(rows);
+    wrap.appendChild(d);
+  });
+}
+
+/* =========================================================
+   CLEAN DOWN
+   ========================================================= */
+function renderCleanDown(){
+  const bar = getSelectedBar();
+  if(!bar) return;
+
+  ensureBarBuckets(bar.id);
+
+  const list = byId("cleanList");
+  list.innerHTML = "";
+
+  const clean = bar.cleanDown || [];
+  let allTasks = [];
+
+  clean.forEach(group => {
+    const header = document.createElement("div");
+    header.className = "muted";
+    header.style.marginTop = "4px";
+    header.style.marginBottom = "-2px";
+    header.style.fontWeight = "850";
+    header.textContent = group.section;
+    list.appendChild(header);
+
+    (group.tasks || []).forEach(task => {
+      const id = taskId(group.section, task);
+      allTasks.push(id);
+
+      const row = document.createElement("label");
+      row.className = "check";
+
+      const cb = document.createElement("input");
+      cb.type = "checkbox";
+      cb.checked = !!state.cleanChecked[bar.id][id];
+      cb.addEventListener("change", () => {
+        state.cleanChecked[bar.id][id] = cb.checked;
+        saveState();
+        updateCleanTotals();
+      });
+
+      const text = document.createElement("div");
+      text.innerHTML = `<div style="font-weight:850;font-size:13px">${escapeHtml(task)}</div>`;
+
+      const count = document.createElement("div");
+      count.className = "count";
+      count.textContent = "";
+
+      row.appendChild(cb);
+      row.appendChild(text);
+      row.appendChild(count);
+      list.appendChild(row);
+    });
+  });
+
+  function updateCleanTotals(){
+    const done = allTasks.filter(id => !!state.cleanChecked[bar.id][id]).length;
+    byId("cleanTotals").textContent = `${done}/${allTasks.length} done`;
+  }
+  updateCleanTotals();
+
+  byId("btnCheckAllClean").onclick = () => {
+    allTasks.forEach(id => state.cleanChecked[bar.id][id] = true);
+    saveState();
+    renderCleanDown();
+  };
+  byId("btnUncheckAllClean").onclick = () => {
+    allTasks.forEach(id => state.cleanChecked[bar.id][id] = false);
+    saveState();
+    renderCleanDown();
+  };
+}
+
+/* =========================================================
+   RESET
+   ========================================================= */
+byId("btnReset").onclick = () => {
+  const bar = getSelectedBar();
+  if(!bar) return;
+  ensureBarBuckets(bar.id);
+
+  state.missingByBar[bar.id] = {};
+  state.pickChecked[bar.id] = {};
+  state.cleanChecked[bar.id] = {};
+  saveState();
+
+  renderAll();
+};
+
+/* =========================================================
+   SETUP EDITOR
+   ========================================================= */
+const setupModal = byId("setupModal");
+const setupTextarea = byId("setupTextarea");
+const setupError = byId("setupError");
+
+byId("btnEditSetup").onclick = () => {
+  setupTextarea.value = JSON.stringify(setup, null, 2);
+  setupError.style.display = "none";
+  setupModal.classList.add("open");
+};
+
+byId("btnCancelSetup").onclick = () => setupModal.classList.remove("open");
+
+byId("btnLoadDefault").onclick = () => {
+  // Overwrite BOTH memory + localStorage and rerender
+  setup = structuredClone(DEFAULT_SETUP);
+  saveSetup(setup);
+
+  // Keep selected bar if it still exists, else reset
+  if(!(setup.bars || []).some(b => b.id === state.selectedBarId)){
+    state.selectedBarId = setup.bars[0]?.id;
+    state.selectedFridgeIndex = 0;
+  }
+
+  // Don’t wipe tonight’s counts unless you want to
+  // (If you do want to wipe, uncomment next 2 lines)
+  // state.missingByBar = {};
+  // state.pickChecked = {}, state.cleanChecked = {};
+
+  ensureBarBuckets(state.selectedBarId);
+  saveState();
+
+  setupTextarea.value = JSON.stringify(setup, null, 2);
+  setupError.style.display = "none";
+  renderAll();
+};
+
+byId("btnSaveSetup").onclick = () => {
+  try{
+    const parsed = JSON.parse(setupTextarea.value);
+
+    if(!parsed || typeof parsed !== "object") throw new Error("Setup must be an object.");
+    if(!parsed.venue) parsed.venue = "Trilogy";
+    if(!Array.isArray(parsed.bars)) throw new Error("Setup must include bars: []");
+    parsed.version = APP_VERSION;
+
+    // Light validation + normalize missing arrays
+    parsed.bars.forEach((b, i) => {
+      if(!b.id) b.id = "bar_" + (i+1);
+      if(!b.name) b.name = b.id;
+      if(!Array.isArray(b.fridges)) b.fridges = [];
+      if(!Array.isArray(b.cleanDown)) b.cleanDown = [];
+
+      b.fridges.forEach((f, fi) => {
+        if(!f.id) f.id = b.id + "_fridge_" + (fi+1);
+        if(!f.name) f.name = "Fridge " + (fi+1);
+        if(!Array.isArray(f.items)) f.items = [];
+        f.items.forEach(it => {
+          if(!it.key) throw new Error(`Missing item.key in ${b.name} → ${f.name}`);
+          if(!it.label) it.label = it.key;
+          if(typeof it.target !== "number") it.target = parseInt(it.target || 0, 10) || 0;
+        });
+      });
+    });
+
+    saveSetup(parsed);
+    setup = parsed;
+
+    if(!(setup.bars || []).some(b => b.id === state.selectedBarId)){
+      state.selectedBarId = setup.bars[0]?.id;
+      state.selectedFridgeIndex = 0;
+    }
+    ensureBarBuckets(state.selectedBarId);
+    saveState();
+
+    setupModal.classList.remove("open");
+    renderAll();
+  }catch(e){
+    setupError.style.display = "block";
+    setupError.textContent = "Error: " + (e?.message || String(e));
+  }
+};
+
+setupModal.addEventListener("click", (e) => {
+  if(e.target === setupModal) setupModal.classList.remove("open");
+});
+
+/* =========================================================
+   FINISH CLOSE (SIGN-OFF)
+   ========================================================= */
+const signModal = byId("signModal");
+const signText = byId("signText");
+const copyStatus = byId("copyStatus");
+
+byId("btnFinishClose").onclick = () => {
+  const bar = getSelectedBar();
+  if(!bar) return;
+  ensureBarBuckets(bar.id);
+
+  const now = new Date();
+  const time = now.toLocaleTimeString([], {hour:"2-digit", minute:"2-digit"});
+  const date = now.toLocaleDateString([], {weekday:"short", day:"2-digit", month:"short"});
+
+  const totals = computePickTotalsForBar(bar);
+  const pickDone = totals.filter(it => !!state.pickChecked[bar.id][it.key]).length;
+  const pickTotal = totals.length;
+
+  const cleanGroups = bar.cleanDown || [];
+  const allCleanIds = [];
+  cleanGroups.forEach(g => (g.tasks || []).forEach(t => allCleanIds.push(taskId(g.section, t))));
+  const cleanDone = allCleanIds.filter(id => !!state.cleanChecked[bar.id][id]).length;
+  const cleanTotal = allCleanIds.length;
+
+  const top = totals.slice(0, 8).map(it => `• ${it.label}: ${it.qty}`).join("\n");
+  const more = totals.length > 8 ? `\n• +${totals.length - 8} more…` : "";
+
+  signText.value =
+`✅ ${bar.name.toUpperCase()} CLOSED
+📍 ${setup.venue}
+
+🧊 Stock checked
+📋 Pick list: ${pickDone}/${pickTotal} checked
+🧽 Clean down: ${cleanDone}/${cleanTotal} done
+
+🕒 ${time} • ${date}
+
+${totals.length ? "Need / grabbed:\n" + top + more : "No stock missing logged."}`;
+
+  copyStatus.style.display = "none";
+  signModal.classList.add("open");
+};
+
+byId("btnCloseSign").onclick = () => signModal.classList.remove("open");
+
+byId("btnCopySign").onclick = async () => {
+  copyStatus.style.display = "none";
+  try{
+    if(navigator.clipboard && navigator.clipboard.writeText){
+      await navigator.clipboard.writeText(signText.value);
+    }else{
+      signText.focus();
+      signText.select();
+      document.execCommand("copy");
+    }
+    copyStatus.style.display = "block";
+    copyStatus.textContent = "Copied ✅";
+  }catch(e){
+    copyStatus.style.display = "block";
+    copyStatus.textContent = "Couldn’t auto-copy. Long-press → Select All → Copy.";
+  }
+};
+
+signModal.addEventListener("click", (e) => {
+  if(e.target === signModal) signModal.classList.remove("open");
+});
+
+/* =========================================================
+   BOTTOM NAV
+   ========================================================= */
+function setActiveTab(tab){
+  state.activeTab = tab;
+  saveState();
+
+  document.querySelectorAll(".view").forEach(v => v.classList.remove("active"));
+  const view = byId("view-" + tab);
+  if(view) view.classList.add("active");
+
+  document.querySelectorAll(".navBtn").forEach(b => b.classList.remove("active"));
+  document.querySelectorAll(`.navBtn[data-tab="${tab}"]`).forEach(b => b.classList.add("active"));
+
+  // keep content fresh
+  if(tab === "fridges"){ renderFridges(); renderPickPreview(); renderFridgeBreakdownPreview(); }
+  if(tab === "lists"){ renderPickList(); renderFridgeBreakdown(); }
+  if(tab === "clean"){ renderCleanDown(); }
+  if(tab === "settings"){ updateStorageStatus(); }
+}
+
+document.querySelectorAll(".navBtn").forEach(btn => {
+  btn.addEventListener("click", () => setActiveTab(btn.dataset.tab));
+});
+
+/* =========================================================
+   TOOLS TAB HELPERS
+   ========================================================= */
+function updateStorageStatus(){
+  const el = byId("storageStatus");
+  const hasSetup = !!localStorage.getItem(LS_SETUP_KEY);
+  const hasState = !!localStorage.getItem(LS_STATE_KEY);
+  el.textContent = `Saved setup: ${hasSetup ? "Yes" : "No"} • Saved state: ${hasState ? "Yes" : "No"} • Version: v${APP_VERSION}`;
+}
+
+byId("btnForceDefault").onclick = () => {
+  setup = structuredClone(DEFAULT_SETUP);
+  saveSetup(setup);
+  state.selectedBarId = setup.bars[0]?.id;
+  state.selectedFridgeIndex = 0;
+  state.missingByBar = {};
+  state.pickChecked = {};
+  state.cleanChecked = {};
+  ensureBarBuckets(state.selectedBarId);
+  saveState();
+  renderAll();
+  updateStorageStatus();
+};
+
+byId("btnClearStorage").onclick = () => {
+  localStorage.removeItem(LS_SETUP_KEY);
+  localStorage.removeItem(LS_STATE_KEY);
+  setup = structuredClone(DEFAULT_SETUP);
+  state = freshState();
+  ensureBarBuckets(state.selectedBarId);
+  saveState();
+  renderAll();
+  updateStorageStatus();
+};
+
+/* =========================================================
+   DISABLE DOUBLE-TAP ZOOM (keep pinch zoom)
+   ========================================================= */
+let lastTouchEnd = 0;
+document.addEventListener("touchend", function (event) {
+  const now = Date.now();
+  if (now - lastTouchEnd <= 300) {
+    event.preventDefault();
+  }
+  lastTouchEnd = now;
+}, { passive: false });
+
+/* =========================================================
+   RENDER ALL
+   ========================================================= */
+function renderAll(){
+  const bar = getSelectedBar();
+  if(bar) ensureBarBuckets(bar.id);
+
+  setPills();
+  renderBarSelect();
+
+  // Fridges view
+  renderFridges();
+  renderPickPreview();
+  renderFridgeBreakdownPreview();
+
+  // Lists view
+  renderPickList();
+  renderFridgeBreakdown();
+
+  // Clean view
+  renderCleanDown();
+
+  updateProgressPill();
+  updateStorageStatus();
+}
+
+/* =========================================================
+   INIT
+   ========================================================= */
+(function init(){
+  // Ensure selected bar buckets exist
+  if(getSelectedBar()) ensureBarBuckets(getSelectedBar().id);
+
+  // Restore active tab (default fridges)
+  const tab = state.activeTab || "fridges";
+  renderAll();
+  setActiveTab(tab);
+})();
+</script>
+</body>
+</html>
