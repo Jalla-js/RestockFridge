@@ -1,0 +1,310 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport"
+  content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=yes, maximum-scale=5">
+
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Close Checklist">
+
+<link rel="icon" href="favicon.svg">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+
+<title>Close Checklist</title>
+
+<style>
+:root{
+  --bg:#070A10;
+  --panel:rgba(255,255,255,0.06);
+  --stroke:rgba(255,255,255,0.12);
+  --text:rgba(255,255,255,0.92);
+  --muted:rgba(255,255,255,0.6);
+  --accent:#7C5CFF;
+  --accent2:#23D5FF;
+  --radius:16px;
+}
+
+*{box-sizing:border-box}
+html,body{
+  margin:0;
+  background:var(--bg);
+  color:var(--text);
+  font-family:-apple-system,system-ui,Segoe UI,Roboto;
+}
+
+.wrap{
+  padding:16px;
+  padding-bottom:84px;
+}
+
+header{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:12px;
+  margin-bottom:12px;
+}
+
+h1{font-size:18px;margin:0}
+select{
+  background:var(--panel);
+  color:var(--text);
+  border:1px solid var(--stroke);
+  border-radius:12px;
+  padding:8px 12px;
+}
+
+.card{
+  background:linear-gradient(180deg,rgba(255,255,255,.08),rgba(255,255,255,.04));
+  border:1px solid var(--stroke);
+  border-radius:var(--radius);
+  padding:14px;
+  margin-bottom:12px;
+}
+
+.fridgeHeader{
+  display:flex;
+  justify-content:space-between;
+  margin-bottom:10px;
+}
+
+.row{
+  display:grid;
+  grid-template-columns:1fr 96px;
+  gap:10px;
+  align-items:center;
+  padding:10px;
+  border-radius:12px;
+  background:rgba(0,0,0,.2);
+  margin-bottom:8px;
+}
+
+input.qty{
+  width:100%;
+  padding:10px;
+  font-size:16px;
+  background:rgba(255,255,255,.08);
+  border:1px solid var(--stroke);
+  border-radius:10px;
+  color:var(--text);
+}
+
+.bottles{
+  display:flex;
+  gap:4px;
+  align-items:flex-end;
+  position:relative;
+}
+
+.bottle{
+  width:8px;
+  height:26px;
+  border-radius:3px;
+  background:rgba(255,255,255,.15);
+}
+
+.bottle.fill{
+  background:linear-gradient(180deg,var(--accent),var(--accent2));
+  box-shadow:0 0 6px rgba(124,92,255,.6);
+}
+
+.scaleLabel{
+  position:absolute;
+  right:-6px;
+  top:-16px;
+  font-size:11px;
+  color:var(--muted);
+}
+
+.check{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  padding:10px;
+  border-radius:12px;
+  background:rgba(0,0,0,.2);
+  margin-bottom:8px;
+}
+
+.bottomNav{
+  position:fixed;
+  bottom:0; left:0; right:0;
+  background:rgba(10,12,18,.95);
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  border-top:1px solid var(--stroke);
+}
+
+.navBtn{
+  padding:14px;
+  text-align:center;
+  color:var(--muted);
+  font-weight:700;
+}
+
+.navBtn.active{color:var(--text)}
+
+.hidden{display:none}
+</style>
+</head>
+
+<body>
+<div class="wrap">
+
+<header>
+  <h1 id="title">Close Checklist</h1>
+  <select id="barSelect"></select>
+</header>
+
+<!-- FRIDGES -->
+<div id="tab-fridges"></div>
+
+<!-- PICK LIST -->
+<div id="tab-pick" class="hidden"></div>
+
+<!-- CLEAN DOWN -->
+<div id="tab-clean" class="hidden"></div>
+
+</div>
+
+<nav class="bottomNav">
+  <div class="navBtn active" data-tab="fridges">Fridges</div>
+  <div class="navBtn" data-tab="pick">Pick</div>
+  <div class="navBtn" data-tab="clean">Clean</div>
+</nav>
+
+<script>
+/* ---------------- SETUP ---------------- */
+const SETUP = {
+  venue:"Trilogy",
+  bars:[
+    {
+      id:"barcadia",
+      name:"Barcadia",
+      fridges:[
+        {name:"Fridge A",items:[
+          {key:"orange",label:"Orange",target:36},
+          {key:"blue",label:"Blue",target:36},
+          {key:"apple_mango",label:"Apple & Mango",target:12},
+          {key:"tropical",label:"Tropical",target:24},
+          {key:"ice",label:"Ice",target:24},
+          {key:"cherry",label:"Cherry",target:12},
+          {key:"hooch",label:"Hooch",target:18}
+        ]},
+        {name:"Fridge B",items:[
+          {key:"desperados",label:"Desperados",target:24},
+          {key:"bud",label:"Budweiser",target:24},
+          {key:"sol",label:"Sol",target:20},
+          {key:"peroni",label:"Peroni",target:20}
+        ]}
+      ],
+      clean:["Bottle condoms on","Bins out","Surfaces wiped"]
+    },
+    {
+      id:"garden",
+      name:"Garden Bar",
+      fridges:[
+        {name:"Beer Fridge",items:[
+          {key:"bud",label:"Budweiser",target:10},
+          {key:"sol",label:"Sol",target:12},
+          {key:"peroni",label:"Peroni",target:12}
+        ]}
+      ],
+      clean:["Bins out","Floors swept","Reset bar"]
+    }
+  ]
+};
+
+/* ---------------- STATE ---------------- */
+let state = JSON.parse(localStorage.getItem("close_state")||"{}");
+if(!state.bar) state.bar=SETUP.bars[0].id;
+if(!state.missing) state.missing={};
+
+function save(){localStorage.setItem("close_state",JSON.stringify(state))}
+
+/* ---------------- HAPTIC ---------------- */
+function haptic(t="light"){
+  if(!navigator.vibrate) return;
+  navigator.vibrate(t==="heavy"?[20,30,20]:10);
+}
+
+/* ---------------- UI ---------------- */
+const barSelect=document.getElementById("barSelect");
+SETUP.bars.forEach(b=>{
+  const o=document.createElement("option");
+  o.value=b.id; o.textContent=b.name;
+  barSelect.appendChild(o);
+});
+barSelect.value=state.bar;
+barSelect.onchange=()=>{state.bar=barSelect.value;save();render();haptic()};
+
+function renderBottles(have,target){
+  const max=14;
+  if(target<=max){
+    return Array.from({length:target}).map((_,i)=>
+      `<div class="bottle ${i<have?"fill":""}"></div>`).join("");
+  }
+  const filled=Math.round((have/target)*max);
+  return `
+    ${Array.from({length:max}).map((_,i)=>
+      `<div class="bottle ${i<filled?"fill":""}"></div>`).join("")}
+    <div class="scaleLabel">${have}/${target}</div>`;
+}
+
+function render(){
+  const bar=SETUP.bars.find(b=>b.id===state.bar);
+  const wrap=document.getElementById("tab-fridges");
+  wrap.innerHTML="";
+  bar.fridges.forEach((f,fi)=>{
+    const card=document.createElement("div");
+    card.className="card";
+    card.innerHTML=`<div class="fridgeHeader"><b>${f.name}</b></div>`;
+    f.items.forEach(it=>{
+      const key=`${fi}_${it.key}`;
+      const miss=state.missing[key]||0;
+      const have=Math.max(0,it.target-miss);
+      const row=document.createElement("div");
+      row.className="row";
+      row.innerHTML=`
+        <div>
+          <div style="font-weight:700">${it.label}</div>
+          <div class="bottles">${renderBottles(have,it.target)}</div>
+        </div>
+        <input class="qty" type="tel" inputmode="numeric" value="${miss||""}">
+      `;
+      row.querySelector("input").oninput=e=>{
+        state.missing[key]=+e.target.value||0;
+        save(); haptic("tick");
+        render();
+      };
+      card.appendChild(row);
+    });
+    wrap.appendChild(card);
+  });
+
+  document.getElementById("tab-pick").innerHTML=
+    `<div class="card"><b>Pick list</b></div>`;
+
+  document.getElementById("tab-clean").innerHTML=
+    `<div class="card">${bar.clean.map(t=>`
+      <label class="check"><input type="checkbox"> ${t}</label>`).join("")}</div>`;
+}
+
+render();
+
+/* ---------------- TABS ---------------- */
+document.querySelectorAll(".navBtn").forEach(btn=>{
+  btn.onclick=()=>{
+    haptic();
+    document.querySelectorAll(".navBtn").forEach(b=>b.classList.remove("active"));
+    btn.classList.add("active");
+    ["fridges","pick","clean"].forEach(t=>{
+      document.getElementById("tab-"+t).classList.toggle("hidden",btn.dataset.tab!==t);
+    });
+  };
+});
+</script>
+</body>
+</html>
