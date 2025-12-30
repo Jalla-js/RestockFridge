@@ -1,0 +1,773 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#0B0E14">
+<title>Close · Stock</title>
+
+<style>
+:root{
+  --bg:#0B0E14;
+  --panel:#121726;
+  --stroke:rgba(255,255,255,.08);
+  --text:#F1F3F9;
+  --muted:#9AA0B5;
+  --accent:#7C5CFF;
+  --accent2:#23D5FF;
+  --radius:14px;
+}
+
+*{box-sizing:border-box}
+body{
+  margin:0;
+  background:var(--bg);
+  color:var(--text);
+  font-family:-apple-system,system-ui,Segoe UI,Roboto;
+}
+
+.app{
+  max-width:480px;
+  margin:0 auto;
+  padding:16px 14px 90px;
+}
+
+/* header */
+.header h1{
+  margin:0;
+  font-size:16px;
+  font-weight:900;
+}
+.sub{
+  font-size:12px;
+  color:var(--muted);
+}
+
+/* select */
+select{
+  width:100%;
+  margin-top:10px;
+  padding:10px;
+  background:var(--panel);
+  color:var(--text);
+  border:1px solid var(--stroke);
+  border-radius:12px;
+}
+
+/* progress */
+.progress{
+  margin:14px 0 6px;
+}
+.bar{
+  height:8px;
+  border-radius:999px;
+  background:rgba(255,255,255,.08);
+  overflow:hidden;
+}
+.fill{
+  height:100%;
+  background:linear-gradient(90deg,var(--accent),var(--accent2));
+  width:0%;
+}
+.progressText{
+  font-size:11px;
+  color:var(--muted);
+  margin-top:6px;
+  text-align:right;
+}
+
+/* nav row */
+.navRow{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  margin-bottom:12px;
+}
+.fridgeId{
+  font-size:12px;
+  color:var(--accent2);
+  font-weight:800;
+}
+.navRow button{
+  padding:6px 12px;
+  border-radius:10px;
+  border:1px solid var(--stroke);
+  background:var(--panel);
+  color:var(--text);
+}
+
+/* rows */
+.section h2{
+  font-size:12px;
+  letter-spacing:.08em;
+  text-transform:uppercase;
+  color:var(--accent2);
+  margin:14px 0 6px;
+}
+
+.row{
+  position:relative;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:12px;
+  padding:12px;
+  background:var(--panel);
+  border:1px solid var(--stroke);
+  border-radius:var(--radius);
+  margin-bottom:8px;
+  overflow:hidden;
+}
+
+.row.done{
+  opacity:.45;
+}
+
+.item .name{
+  font-weight:800;
+}
+.item .meta{
+  font-size:11px;
+  color:var(--muted);
+}
+
+.stats{
+  text-align:right;
+  font-size:12px;
+  color:var(--muted);
+  min-width:100px;
+}
+
+.pickAll{
+  padding:6px 10px;
+  border-radius:999px;
+  background:rgba(255,255,255,.06);
+  border:1px solid rgba(255,255,255,.12);
+  font-size:11px;
+  font-weight:800;
+  color:var(--muted);
+  cursor:pointer;
+}
+
+.pickAll.active{
+  background:linear-gradient(90deg,var(--accent),var(--accent2));
+  color:#fff;
+  border:none;
+}
+
+input.pickInput{
+  width:64px;
+  padding:8px;
+  text-align:center;
+  border-radius:10px;
+  border:1px solid rgba(255,255,255,.14);
+  background:rgba(255,255,255,.06);
+  color:var(--text);
+  display:none;
+}
+
+.row.manual input.pickInput{
+  display:block;
+}
+
+/* swipe affordance */
+.row::after{
+  content:"✔ Picked all";
+  position:absolute;
+  inset:0;
+  background:linear-gradient(90deg,var(--accent),var(--accent2));
+  color:#fff;
+  display:flex;
+  align-items:center;
+  padding-left:16px;
+  font-weight:900;
+  transform:translateX(-100%);
+  transition:.2s;
+}
+.row.swiped::after{ transform:translateX(0); }
+
+.row::before{
+  content:"↩ Undo";
+  position:absolute;
+  inset:0;
+  background:#2a2f45;
+  color:#fff;
+  display:flex;
+  align-items:center;
+  justify-content:flex-end;
+  padding-right:16px;
+  font-weight:900;
+  transform:translateX(100%);
+  transition:.2s;
+}
+.row.undoing::before{ transform:translateX(0); }
+
+/* tabs */
+.tabs{
+  position:fixed;
+  left:0;right:0;bottom:0;
+  background:rgba(12,15,22,.92);
+  backdrop-filter:blur(12px);
+  border-top:1px solid rgba(255,255,255,.1);
+  display:flex;
+}
+.tabs button{
+  flex:1;
+  padding:14px;
+  background:none;
+  border:none;
+  color:var(--muted);
+  font-weight:800;
+}
+.tabs button.active{
+  color:var(--accent2);
+}
+</style>
+</head>
+
+<body>
+<div class="app">
+  <div class="header">
+    <h1>Close · Stock</h1>
+    <div class="sub" id="titleSub"></div>
+  </div>
+
+  <select id="barSelect"></select>
+
+  <div class="progress">
+    <div class="bar"><div class="fill" id="fill"></div></div>
+    <div class="progressText" id="progressText"></div>
+  </div>
+
+  <div class="navRow" id="fridgeNav">
+    <div class="fridgeId" id="fridgeId"></div>
+    <div>
+      <button id="prevBtn">◀</button>
+      <button id="nextBtn">▶</button>
+    </div>
+  </div>
+
+  <div id="view"></div>
+</div>
+
+<div class="tabs">
+  <button class="active" data-tab="fridges">Fridges</button>
+  <button data-tab="pick">Pick</button>
+  <button data-tab="clean">Clean</button>
+</div>
+
+<script>
+/* ---------------- DATA ---------------- */
+const DATA = {
+  venue: "Trilogy",
+  bars: [
+    {
+      id: "barcadia",
+      name: "Barcadia",
+      fridges: [
+        {
+          id: "barcadia_A",
+          name: "Fridge A",
+          hint: "Alcopops",
+          items: [
+            { key: "orange", label: "Orange", target: 36 },
+            { key: "blue", label: "Blue", target: 36 },
+            { key: "apple_mango", label: "Apple & Mango", target: 12 },
+            { key: "tropical", label: "Tropical", target: 24 },
+            { key: "ice", label: "Ice", target: 24 },
+            { key: "cherry", label: "Cherry", target: 12 },
+            { key: "hooch", label: "Hooch", target: 18 }
+          ]
+        },
+        {
+          id: "barcadia_B",
+          name: "Fridge B",
+          hint: "Beers",
+          items: [
+            { key: "desperados", label: "Desperados", target: 24 },
+            { key: "budweiser", label: "Budweiser", target: 24 },
+            { key: "sol", label: "Sol", target: 20 },
+            { key: "peroni", label: "Peroni", target: 20 },
+            { key: "san_miguel", label: "San Miguel", target: 20 },
+            { key: "old_mout_pineapple_raspberry", label: "Old Mout Pineapple & Raspberry", target: 4 },
+            { key: "old_mout_kiwi_lime", label: "Old Mout Kiwi & Lime", target: 4 },
+            { key: "old_mout_berries_cherries", label: "Old Mout Berries & Cherries", target: 4 }
+          ]
+        },
+        {
+          id: "barcadia_C",
+          name: "Fridge C",
+          hint: "Alcopops",
+          items: [
+            { key: "orange", label: "Orange", target: 30 },
+            { key: "blue", label: "Blue", target: 30 },
+            { key: "apple_mango", label: "Apple & Mango", target: 12 },
+            { key: "tropical", label: "Tropical", target: 24 },
+            { key: "ice", label: "Ice", target: 24 },
+            { key: "cherry", label: "Cherry", target: 12 },
+            { key: "blackcurrant", label: "Blackcurrant", target: 18 }
+          ]
+        }
+      ],
+      cleanDown: [
+        { section: "BAR", tasks: [
+          "Bottle condoms on",
+          "Glass bin taken out",
+          "Waste bin taken out",
+          "Place mats and spirit measures in red bucket",
+          "Red bucket removed",
+          "All sides wiped down"
+        ]},
+        { section: "FLOOR", tasks: [
+          "Floors swept",
+          "Tables wiped down",
+          "Rubbish sorted"
+        ]},
+        { section: "RESET BAR", tasks: [
+          "Reset bar"
+        ]}
+      ]
+    },
+
+    {
+      id: "garden",
+      name: "Garden Bar",
+      fridges: [
+        {
+          id: "garden_beer",
+          name: "Beer Fridge",
+          hint: "Beers & Old Mout",
+          items: [
+            { key: "budweiser", label: "Budweiser", target: 10 },
+            { key: "sol", label: "Sol", target: 12 },
+            { key: "peroni", label: "Peroni", target: 12 },
+            { key: "old_mout_pineapple_raspberry", label: "Old Mout Pineapple & Raspberry", target: 4 },
+            { key: "old_mout_kiwi_lime", label: "Old Mout Kiwi & Lime", target: 4 },
+            { key: "old_mout_berries_cherries", label: "Old Mout Berries & Cherries", target: 4 }
+          ]
+        },
+        {
+          id: "garden_alcopops",
+          name: "Alcopops Fridge",
+          hint: "WKD / Hooch",
+          items: [
+            { key: "orange", label: "Orange", target: 30 },
+            { key: "blue", label: "Blue", target: 30 },
+            { key: "apple_mango", label: "Apple & Mango", target: 12 },
+            { key: "tropical", label: "Tropical", target: 24 },
+            { key: "cherry", label: "Cherry", target: 12 },
+            { key: "ice", label: "Ice", target: 24 },
+            { key: "hooch", label: "Hooch", target: 18 }
+          ]
+        },
+        {
+          id: "garden_soft",
+          name: "Soft Drinks Fridge",
+          hint: "Mixers & Energy",
+          items: [
+            { key: "diet_coke", label: "Diet Coke", target: 3 },
+            { key: "coke", label: "Coke", target: 3 },
+            { key: "tonic", label: "Tonic", target: 6 },
+            { key: "j20", label: "J20", target: 3 },
+            { key: "red_bull", label: "Red Bull", target: 3 }
+          ]
+        }
+      ],
+      cleanDown: [
+        { section: "BAR", tasks: [
+          "Bottle condoms on",
+          "Waste bin taken out",
+          "Bar wiped down"
+        ]},
+        { section: "FLOOR", tasks: [
+          "Floors swept",
+          "Tables wiped down",
+          "Rubbish sorted",
+          "Ash trays cleaned"
+        ]},
+        { section: "RESET BAR", tasks: [
+          "Reset garden bar"
+        ]}
+      ]
+    },
+
+    /* ===================== BOTANIC (your “duplicated-ish fridges”) ===================== */
+    {
+      id: "botanic",
+      name: "Botanic",
+      fridges: [
+        /* Group 1 (0% + main) */
+        {
+          id: "botanic_g1",
+          name: "Botanic Fridge 1",
+          hint: "0% + Mixers/Alcopops",
+          items: [
+            { key: "peroni_zero", label: "Peroni 0%", target: 10, note: "2×5" },
+            { key: "berries_cherries_zero", label: "Berries & Cherries 0%", target: 10, note: "2×5" },
+            { key: "heineken_zero", label: "Heineken 0%", target: 6, note: "2×3" },
+
+            { key: "tropical", label: "Tropical", target: 30, note: "6×5" },
+            { key: "blue", label: "Blue", target: 30, note: "6×5" },
+            { key: "smirnoff_ice", label: "Smirnoff Ice", target: 18, note: "3×6" },
+            { key: "hooch", label: "Hooch", target: 18, note: "3×6" },
+            { key: "ice", label: "Ice", target: 36, note: "6×6" },
+
+            { key: "oasis_summer", label: "Oasis Summer", target: 3, note: "1×3" },
+            { key: "oasis_tropical", label: "Oasis Tropical", target: 3, note: "1×3" },
+            { key: "pepsi_max", label: "Pepsi Max", target: 6, note: "2×3" },
+            { key: "fanta_lemon", label: "Fanta Lemon", target: 6, note: "2×3" },
+            { key: "coke", label: "Coke", target: 3, note: "1×3" },
+            { key: "diet_coke", label: "Diet Coke", target: 3, note: "1×3" },
+            { key: "tonic", label: "Tonic", target: 3, note: "1×3" },
+            { key: "raspberry_lemonade", label: "Raspberry Lemonade", target: 3, note: "1×3" },
+            { key: "elder_lemonade", label: "Elderflower Lemonade", target: 3, note: "1×3" },
+            { key: "j20", label: "J20", target: 3, note: "1×3" },
+
+            { key: "orange", label: "Orange", target: 30, note: "6×5" },
+            { key: "cherry", label: "Cherry", target: 18, note: "3×6" },
+            { key: "apple_mango", label: "Apple & Mango", target: 18, note: "3×6" },
+            { key: "blackcurrant", label: "Blackcurrant", target: 18, note: "6×3" }
+          ]
+        },
+
+        /* Group 2 (orange appears twice in same fridge) */
+        {
+          id: "botanic_g2",
+          name: "Botanic Fridge 2",
+          hint: "Beers + Orange duplicated",
+          items: [
+            { key: "orange", label: "Orange", target: 30, note: "6×5 (shelf 1)" },
+            { key: "orange", label: "Orange", target: 30, note: "6×5 (shelf 2)" },
+            { key: "blue", label: "Blue", target: 36, note: "6×6" },
+
+            { key: "peroni", label: "Peroni", target: 18, note: "3×6" },
+            { key: "desperados", label: "Desperados", target: 18, note: "3×6" },
+            { key: "blackcurrant", label: "Blackcurrant", target: 18, note: "6×3" },
+
+            { key: "old_mout_pineapple_raspberry", label: "Old Mout Pineapple & Raspberry", target: 6, note: "3×2" },
+            { key: "old_mout_kiwi_lime", label: "Old Mout Kiwi & Lime", target: 6, note: "3×2" },
+
+            { key: "san_miguel", label: "San Miguel", target: 10, note: "2×5" },
+            { key: "estrella", label: "Estrella", target: 10, note: "2×5" },
+            { key: "brewdog", label: "BrewDog", target: 10, note: "2×5" },
+
+            { key: "sol", label: "Sol", target: 18, note: "3×6" },
+            { key: "budweiser", label: "Budweiser", target: 18, note: "3×6" },
+            { key: "old_mout_berries_cherries", label: "Old Mout Berries & Cherries", target: 6, note: "3×2" }
+          ]
+        },
+
+        /* Group 3 (repeat of Group 1) */
+        {
+          id: "botanic_g3",
+          name: "Botanic Fridge 3",
+          hint: "Same as Fridge 1",
+          items: [
+            { key: "tropical", label: "Tropical", target: 30, note: "6×5" },
+            { key: "orange", label: "Orange", target: 30, note: "6×5" },
+            { key: "smirnoff_ice", label: "Smirnoff Ice", target: 18, note: "3×6" },
+            { key: "hooch", label: "Hooch", target: 18, note: "3×6" },
+            { key: "ice", label: "Ice", target: 36, note: "6×6" },
+
+            { key: "oasis_summer", label: "Oasis Summer", target: 3, note: "1×3" },
+            { key: "oasis_tropical", label: "Oasis Tropical", target: 3, note: "1×3" },
+            { key: "pepsi_max", label: "Pepsi Max", target: 6, note: "2×3" },
+            { key: "fanta_lemon", label: "Fanta Lemon", target: 6, note: "2×3" },
+            { key: "coke", label: "Coke", target: 3, note: "1×3" },
+            { key: "diet_coke", label: "Diet Coke", target: 3, note: "1×3" },
+            { key: "tonic", label: "Tonic", target: 3, note: "1×3" },
+            { key: "raspberry_lemonade", label: "Raspberry Lemonade", target: 3, note: "1×3" },
+            { key: "elder_lemonade", label: "Elderflower Lemonade", target: 3, note: "1×3" },
+            { key: "j20", label: "J20", target: 3, note: "1×3" },
+
+            { key: "blue", label: "Blue", target: 30, note: "6×5" },
+            { key: "cherry", label: "Cherry", target: 18, note: "3×6" },
+            { key: "apple_mango", label: "Apple & Mango", target: 18, note: "3×6" },
+            { key: "blackcurrant", label: "Blackcurrant", target: 18, note: "6×3" }
+          ]
+        },
+
+        /* Group 4 (repeat of Group 2) */
+        {
+          id: "botanic_g4",
+          name: "Botanic Fridge 4",
+          hint: "Same as Fridge 2",
+          items: [
+            { key: "orange", label: "Orange", target: 30, note: "6×5 (shelf 1)" },
+            { key: "orange", label: "Orange", target: 30, note: "6×5 (shelf 2)" },
+            { key: "blue", label: "Blue", target: 36, note: "6×6" },
+
+            { key: "peroni", label: "Peroni", target: 18, note: "3×6" },
+            { key: "desperados", label: "Desperados", target: 18, note: "3×6" },
+            { key: "blackcurrant", label: "Blackcurrant", target: 18, note: "6×3" },
+
+            { key: "old_mout_kiwi_lime", label: "Old Mout Kiwi & Lime", target: 6, note: "3×2" },
+            { key: "old_mout_pineapple_raspberry", label: "Old Mout Pineapple & Raspberry", target: 6, note: "3×2" },
+
+            { key: "san_miguel", label: "San Miguel", target: 10, note: "2×5" },
+            { key: "estrella", label: "Estrella", target: 10, note: "2×5" },
+            { key: "brewdog", label: "BrewDog", target: 10, note: "2×5" },
+
+            { key: "sol", label: "Sol", target: 18, note: "3×6" },
+            { key: "budweiser", label: "Budweiser", target: 18, note: "3×6" },
+            { key: "old_mout_berries_cherries", label: "Old Mout Berries & Cherries", target: 6, note: "3×2" }
+          ]
+        }
+      ],
+      cleanDown: [
+        { section: "BAR", tasks: [
+          "Bottle condoms on",
+          "Glass bin taken out",
+          "Waste bin taken out",
+          "All sides wiped down"
+        ]},
+        { section: "FLOOR", tasks: [
+          "Floors swept",
+          "Tables wiped down",
+          "Rubbish sorted"
+        ]},
+        { section: "RESET BAR", tasks: [
+          "Reset botanic bar"
+        ]}
+      ]
+    }
+  ]
+};/* same DATA you already provided – unchanged */
+</script>
+
+<script>
+/* ---------------- STATE ---------------- */
+let state = JSON.parse(localStorage.getItem("close_state") || "{}");
+if(!state.bar) state.bar = DATA.bars[0].id;
+if(state.fridge == null) state.fridge = 0;
+if(!state.missing) state.missing = {};
+if(!state.pick) state.pick = {};
+if(!state.clean) state.clean = {};
+let activeTab = "fridges";
+
+function save(){
+  localStorage.setItem("close_state", JSON.stringify(state));
+}
+
+/* ---------------- HELPERS ---------------- */
+function currentBar(){
+  return DATA.bars.find(b => b.id === state.bar);
+}
+function slotKey(bar, fridge, idx){
+  return `${bar}|${fridge}|${idx}`;
+}
+
+/* swipe helper */
+function addSwipe(el,{onRight,onLeft}){
+  let startX=0;
+  el.addEventListener("touchstart",e=>startX=e.touches[0].clientX,{passive:true});
+  el.addEventListener("touchend",e=>{
+    const dx=e.changedTouches[0].clientX-startX;
+    if(dx>60 && onRight) onRight();
+    if(dx<-60 && onLeft) onLeft();
+  });
+}
+
+/* ---------------- PROGRESS ---------------- */
+function updateProgress(){
+  const bar = currentBar();
+  let total=0, missing=0;
+
+  bar.fridges.forEach(fr=>{
+    fr.items.forEach((it,i)=>{
+      total+=it.target;
+      const k=slotKey(bar.id,fr.id,i);
+      let m=state.missing[k]||0;
+      const picked=state.pick[bar.id]?.[it.key]?.grabbed||0;
+      missing+=Math.max(0,m-picked);
+    });
+  });
+
+  const pct=total?Math.round(((total-missing)/total)*100):100;
+  fill.style.width=pct+"%";
+  progressText.textContent=`${pct}% stocked`;
+}
+
+/* ---------------- FRIDGES ---------------- */
+function renderFridges(){
+  const bar=currentBar();
+  const fr=bar.fridges[state.fridge];
+  titleSub.textContent=`${bar.name} · ${fr.name}`;
+  fridgeId.textContent=fr.id;
+  view.innerHTML="";
+
+  fr.items.forEach((it,i)=>{
+    const k=slotKey(bar.id,fr.id,i);
+    const miss=state.missing[k]||"";
+
+    const row=document.createElement("div");
+    row.className="row";
+
+    row.innerHTML=`
+      <div class="item">
+        <div class="name">${it.label}</div>
+        <div class="meta">Target ${it.target}</div>
+      </div>
+    `;
+
+    const input=document.createElement("input");
+    input.type="tel";
+    input.inputMode="numeric";
+    input.value=miss;
+    input.oninput=()=>{
+      state.missing[k]=parseInt(input.value||0)||0;
+      save();
+      updateProgress();
+    };
+
+    row.appendChild(input);
+    view.appendChild(row);
+  });
+
+  updateProgress();
+}
+
+/* ---------------- PICK ---------------- */
+function renderPick(){
+  const bar=currentBar();
+  view.innerHTML="";
+  document.getElementById("fridgeNav").style.display="none";
+
+  if(!state.pick[bar.id]) state.pick[bar.id]={};
+
+  const totals={};
+
+  bar.fridges.forEach(fr=>{
+    fr.items.forEach((it,i)=>{
+      const k=slotKey(bar.id,fr.id,i);
+      const m=state.missing[k]||0;
+      if(m>0){
+        totals[it.key]=(totals[it.key]||{label:it.label,total:0});
+        totals[it.key].total+=m;
+      }
+    });
+  });
+
+  Object.entries(totals).forEach(([key,data])=>{
+    const pick=state.pick[bar.id][key]||{};
+    const grabbed=pick.grabbed||0;
+    const left=Math.max(0,data.total-grabbed);
+
+    const row=document.createElement("div");
+    row.className="row";
+    if(left===0) row.classList.add("done");
+
+    addSwipe(row,{
+      onRight:()=>{
+        state.pick[bar.id][key]={grabbed:data.total,mode:"all"};
+        save(); renderPick(); updateProgress();
+      },
+      onLeft:()=>{
+        delete state.pick[bar.id][key];
+        save(); renderPick(); updateProgress();
+      }
+    });
+
+    const name=document.createElement("div");
+    name.className="item";
+    name.innerHTML=`<div class="name">${data.label}</div>`;
+
+    const stats=document.createElement("div");
+    stats.className="stats";
+    stats.innerHTML=`<div>${left} left</div><div>Total ${data.total}</div>`;
+
+    const pill=document.createElement("div");
+    pill.className="pickAll"+(left===0?" active":"");
+    pill.textContent="Picked all";
+    pill.onclick=()=>{
+      row.classList.add("manual");
+      input.focus();
+    };
+
+    const input=document.createElement("input");
+    input.className="pickInput";
+    input.type="tel";
+    input.inputMode="numeric";
+    input.value=pick.mode==="manual"?grabbed:"";
+    input.oninput=()=>{
+      state.pick[bar.id][key]={grabbed:parseInt(input.value||0)||0,mode:"manual"};
+      save(); updateProgress();
+    };
+
+    row.append(name,stats,pill,input);
+    view.appendChild(row);
+  });
+}
+
+/* ---------------- CLEAN ---------------- */
+function renderClean(){
+  const bar=currentBar();
+  view.innerHTML="";
+  document.getElementById("fridgeNav").style.display="none";
+
+  if(!state.clean[bar.id]) state.clean[bar.id]={};
+
+  bar.cleanDown.forEach(group=>{
+    const sec=document.createElement("div");
+    sec.className="section";
+    sec.innerHTML=`<h2>${group.section}</h2>`;
+
+    group.tasks.forEach(task=>{
+      const id=`${group.section}::${task}`;
+      const row=document.createElement("div");
+      row.className="row";
+
+      const label=document.createElement("div");
+      label.className="item";
+      label.innerHTML=`<div class="name">${task}</div>`;
+
+      const cb=document.createElement("input");
+      cb.type="checkbox";
+      cb.checked=!!state.clean[bar.id][id];
+      cb.onchange=()=>{
+        state.clean[bar.id][id]=cb.checked;
+        save();
+      };
+
+      row.append(label,cb);
+      sec.appendChild(row);
+    });
+
+    view.appendChild(sec);
+  });
+}
+
+/* ---------------- ROUTER ---------------- */
+function render(){
+  fridgeNav.style.display=activeTab==="fridges"?"flex":"none";
+  if(activeTab==="fridges") renderFridges();
+  if(activeTab==="pick") renderPick();
+  if(activeTab==="clean") renderClean();
+}
+
+/* ---------------- INIT ---------------- */
+barSelect.innerHTML=DATA.bars.map(b=>`<option value="${b.id}">${b.name}</option>`).join("");
+barSelect.value=state.bar;
+barSelect.onchange=e=>{
+  state.bar=e.target.value;
+  state.fridge=0;
+  save(); render();
+};
+
+prevBtn.onclick=()=>{ state.fridge=Math.max(0,state.fridge-1); save(); render(); };
+nextBtn.onclick=()=>{ state.fridge=Math.min(currentBar().fridges.length-1,state.fridge+1); save(); render(); };
+
+document.querySelectorAll(".tabs button").forEach(b=>{
+  b.onclick=()=>{
+    document.querySelectorAll(".tabs button").forEach(x=>x.classList.remove("active"));
+    b.classList.add("active");
+    activeTab=b.dataset.tab;
+    render();
+  };
+});
+
+render();
+</script>
+</body>
+</html>
